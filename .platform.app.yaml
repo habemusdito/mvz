@@ -25,6 +25,23 @@ mounts:
         source: local
         source_path: assets
 
+web:
+    locations:
+        '/':
+            # Handle dynamic requests
+            root: 'public'
+            passthru: '/index.php'
+            index:
+                - 'index.php'
+            rules:
+                '^(?<name>.*)\.txt$':
+                    passthru: '/$name.php'
+            headers:
+                Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; frame-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; object-src 'none'"
+            request_buffering:
+                enabled: true
+                max_request_size: 256m
+
 # The size of the persistent disk of the application (in MB).
 disk: 256
 
