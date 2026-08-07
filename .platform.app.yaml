@@ -21,6 +21,9 @@ mounts:
     'public/uploads':
         source: local
         source_path: uploads
+    'public/assets':
+        source: local
+        source_path: assets
 
 # The size of the persistent disk of the application (in MB).
 disk: 256
