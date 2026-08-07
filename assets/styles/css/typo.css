@@ -1,0 +1,20 @@
+@theme {
+    --font-heading: 'exo', sans-serif;
+}
+
+.exo-black {
+    font-weight: 800;
+}
+
+.exo-bold {
+    font-weight: 600;
+}
+
+.exo-regular {
+    font-weight: 400;
+}
+
+.exo-light {
+    font-family: 'exolight';
+    font-weight: 200;
+}

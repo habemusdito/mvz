@@ -1,0 +1,11 @@
+@import "./css/webfonts.css";
+@import "./css/base.css";
+@import "./css/colors.css";
+@import "./css/typo.css";
+@import "tailwindcss";
+
+@theme {
+    --default-font-family: 'opensans', var(--font-sans);
+}
+
+

@@ -1,0 +1,18 @@
+framework:
+    asset_mapper:
+        # The paths to make available to the asset mapper.
+        paths:
+            - assets/
+        excluded_patterns:
+            # Sulu's own React admin UI, built separately via Webpack
+            - '%kernel.project_dir%/assets/admin/*'
+            # CSS partials only ever consumed via Tailwind's "@import" in app.css,
+            # never served standalone - mapping them individually breaks their
+            # relative url() paths, which are only correct once flattened into app.css
+            - '%kernel.project_dir%/assets/styles/css/*'
+        missing_import_mode: strict
+
+when@prod:
+    framework:
+        asset_mapper:
+            missing_import_mode: warn

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale|split('_')[0] }}">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% block meta %}
+        {{ include('@SuluWebsite/Extension/seo.html.twig', {
+            seo: extension.seo|default([]),
+            content: content|default([]),
+            localizations: localizations|default([]),
+            shadowBaseLocale: shadowBaseLocale|default(),
+        }) }}
+    {% endblock %}
+
+    {% block stylesheets %}
+        <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+    {% endblock %}
+</head>
+<body>
+    <header>
+        {% block header %}
+            {% include 'layout/header.html.twig' %}
+        {% endblock %}
+    </header>
+
+    {#
+    <form action="{{ path('sulu_search.website_search') }}" method="GET">
+        <input name="q" type="text" placeholder="Search"/>
+        <input type="submit" value="Go"/>
+    </form>
+    #}
+
+    <main>
+{# {% block content %}{% endblock %}  #}
+        {% include 'layout/body.html.twig' %}
+    </main>
+
+    <footer>
+        {% block footer %}
+            <p>Copyright {{ 'now'|date('Y') }} SULU</p>
+        {% endblock %}
+    </footer>
+
+    {% block javascripts %}{% endblock %}
+    {% block importmap %}{{ importmap('app') }}{% endblock %}
+</body>
+</html>

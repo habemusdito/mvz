@@ -1,0 +1,77 @@
+
+<nav class="bg-secondary-600 w-full relative">
+    <div class="container">
+        <div class="grid grid-cols-12">
+            <div class="col-span-10 md:col-span-11 lg:col-span-4 xl:col-span-3 bg-secondary-600 text-white lg:text-end pt-4 ps-4 pe-4 pb-2 md:pb-4 order-1 content-center">
+                <a href="{{ sulu_content_root_path() }}" class="font-heading exo-bold text-3xl md:text-4xl">MVZ GANZIMMUN</a>
+            </div>
+            <div class="col-span-12 lg:col-span-8 xl:col-span-9 px-4 lg:bg-white order-3 lg:order-2 h-full content-end pt-4">
+                <p class="font-heading text-white text-lg lg:text-primary pb-2">Ärztliche Praxis für Allgemein- und Labormedizin</p>
+                <div class="hidden w-full lg:block md:w-auto">
+                    <ul class="flex space-x-8 text-lg">
+                        <li>
+                            <a href="#" class="block text-gray-800 py-2 px-3 hover:text-primary border-b-1 border-b-primary hover:border-b-3 h-12 box-border">Vorsorge</a>
+                        </li>
+                        <li>
+                            <a href="#" class="block text-gray-800 py-2 px-3 hover:text-primary border-b-1 border-b-primary hover:border-b-3 h-12 box-border">Diagnostik</a>
+                        </li>
+                        <li>
+                            <a href="#" class="block text-gray-800 py-2 px-3 hover:text-primary border-b-1 border-b-primary hover:border-b-3 h-12 box-border">Therapie</a>
+                        </li>
+                        <li>
+                            <a href="#" class="block text-gray-800 py-2 px-3 hover:text-primary border-b-1 border-b-primary hover:border-b-3 h-12 box-border">Praxis</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-span-2 md:col-span-1 block lg:hidden h-full order-2 lg:order-3 pt-4 pe-2">
+                <!--button data-collapse-toggle="navbar-default" type="button" class=" text-white lg:hidden hover:bg-secondary-200 focus:outline-none focus:ring-2" aria-controls="navbar-default" aria-expanded="false"-->
+                <button class="overflow-y-auto inline-flex items-center justify-center text-white hover:text-secondary-200 cursor-pointer" type="button" data-drawer-target="navigation" data-drawer-show="navigation" data-drawer-placement="top" aria-controls="navigation">
+                    {{ ux_icon('tabler:menu-2', {class: 'w-8 h-8'}) }}
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!--div class="hidden text-end bg-white w-full transition-transform -translate-x-full" id="navbar-default"-->
+<div id="navigation" class="absolute top-0 left-0 right-0 z-40 w-full p-4 bg-white transition-transform duration-1000 -translate-y-full lg:hidden shadow-xl" tabindex="-1" aria-labelledby="navigation">
+    <button type="button" data-drawer-hide="navigation" aria-controls="navigation" class="text-primary hover:text-secondary absolute top-4 end-4 cursor-pointer">
+        {{ ux_icon('tabler:x', {class: 'w-8 h-8'}) }}
+        <span class="sr-only">Close menu</span>
+    </button>
+    <ul class="text-lg my-10 text-end">
+        <li>
+            <a href="#" class="block text-gray-800 py-2 px-3 hover:text-primary border-b-1 border-b-primary hover:border-b-3 h-12 box-border">Vorsorge</a>
+        </li>
+        <li>
+            <a href="#" class="block text-gray-800 py-2 px-3 hover:text-primary border-b-1 border-b-primary hover:border-b-3 h-12 box-border">Diagnostik</a>
+        </li>
+        <li>
+            <a href="#" class="block text-gray-800 py-2 px-3 hover:text-primary border-b-1 border-b-primary hover:border-b-3 h-12 box-border">Therapie</a>
+        </li>
+        <li>
+            <a href="#" class="block text-gray-800 py-2 px-3 hover:text-primary border-b-1 border-b-primary hover:border-b-3 h-12 box-border">Praxis</a>
+        </li>
+    </ul>
+</div>
+
+{#
+<ul>
+    <li>
+        <a href="{{ sulu_content_root_path() }}">Homepage</a>
+    </li>
+
+    {% for item in sulu_page_navigation_root_tree('main', 1, {
+        title: 'title',
+        url: 'url',
+    }) %}
+        <li>
+            <a href="{{ sulu_content_path(item.url) }}"
+               title="{{ item.title }}">{{ item.title }}</a>
+        </li>
+    {% endfor %}
+</ul>
+#}
+
+
