@@ -1,5 +1,30 @@
 @theme {
-    --font-heading: 'exo', sans-serif;
+    --font-heading: 'mozregular', sans-serif;
+}
+
+.moz-light {
+    font-family: 'mozlight';
+    font-weight: 200;
+}
+
+.moz-bold {
+    font-family: 'mozbold';
+    font-weight: 800;
+}
+
+.moz-regular {
+    font-family: 'mozregular';
+    font-weight: 400;
+}
+
+.moz-semibold {
+    font-family: 'mozsemibold';
+    font-weight: 400;
+}
+
+.exo-light {
+    font-family: 'exolight';
+    font-weight: 200;
 }
 
 .exo-black {
