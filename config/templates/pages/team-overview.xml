@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<template xmlns="http://schemas.sulu.io/template/template"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns:xi="http://www.w3.org/2001/XInclude"
+          xsi:schemaLocation="http://schemas.sulu.io/template/template http://schemas.sulu.io/template/template-1.0.xsd">
+
+    <key>team_overview</key>
+    <view>pages/team-overview</view>
+    <controller>Sulu\Content\UserInterface\Controller\Website\ContentController::indexAction</controller>
+
+    <properties>
+        <xi:include href="../includes/header.xml"/>
+
+        <property name="pages" type="smart_content">
+            <meta>
+                <title lang="de">Smart Content</title>
+            </meta>
+
+            <params>
+                <param name="provider" value="pages"/>
+                <param name="max_per_page" value="5"/>
+                <param name="page_parameter" value="p"/>
+
+                <param name="properties" type="collection">
+                    <param name="article" value="article"/>
+                    <param name="uuid" value="object.resource.uuid"/>
+                    <param name="authored" value="object.authored"/>
+                    <param name="lastModified" value="object.lastModified"/>
+                    <param name="excerptTitle" value="excerpt.title" />
+                    <param name="excerptDescription" value="excerpt.description"/>
+                    <param name="excerptMore" value="excerpt.more" />
+                    <param name="excerptTags" value="excerpt.tags" />
+                    <param name="excerptCategories" value="excerpt.categories" />
+                    <param name="excerptImage" value="excerpt.image" />
+                    <param name="excerptIcon" value="excerpt.icon" />
+                </param>
+
+                <param name="present_as" type="collection">
+                    <param name="two">
+                        <meta>
+                            <title lang="en">Two columns</title>
+                        </meta>
+                    </param>
+
+                    <param name="one">
+                        <meta>
+                            <title lang="en">One column</title>
+                        </meta>
+                    </param>
+                </param>
+            </params>
+        </property>
+    </properties>
+</template>

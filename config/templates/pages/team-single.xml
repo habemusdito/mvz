@@ -1,0 +1,106 @@
+<?xml version="1.0" ?>
+<template xmlns="http://schemas.sulu.io/template/template"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://schemas.sulu.io/template/template http://schemas.sulu.io/template/template-1.0.xsd">
+
+    <key>team_single</key>
+    <view>pages/team-single</view>
+    <controller>Sulu\Content\UserInterface\Controller\Website\ContentController::indexAction</controller>
+
+    <properties>
+
+        <property name="team-pic" type="single_media_selection">
+            <meta>
+                <title lang="de">Bild</title>
+            </meta>
+        </property>
+        <property name="name" type="text_line">
+            <meta>
+                <title lang="de">Titel/Name</title>
+            </meta>
+        </property>
+        <property name="description" type="text_line">
+            <meta>
+                <title lang="de">Bezeichnung</title>
+            </meta>
+        </property>
+
+        <property name="url" type="route" mandatory="true">
+            <meta>
+                <title lang="de">URL</title>
+            </meta>
+
+            <params>
+                <param name="mode" value="tree_full_edit"/>
+                <param name="route_schema" value="/events/{implode('-', object)}"/>
+            </params>
+
+            <tag name="sulu.rlp"/>
+        </property>
+
+        <block name="sections" default-type="section_block" minOccurs="1">
+            <meta>
+                <title lang="de">Abschnitte</title>
+            </meta>
+            <params>
+                <param name="add_button_text">
+                    <meta>
+                        <title lang="de">Block hinzufügen</title>
+                    </meta>
+                </param>
+            </params>
+            <types>
+                <type name="section_block">
+                    <meta>
+                        <title lang="de">Absatz</title>
+                    </meta>
+                    <properties>
+                        <property name="title" type="text_line" mandatory="true">
+                            <meta>
+                                <title lang="de">Absatz-Titel</title>
+                            </meta>
+                        </property>
+
+                        <block name="features" default-type="time">
+                            <meta>
+                                <title lang="de">Texte</title>
+                            </meta>
+                            <params>
+                                <param name="add_button_text">
+                                    <meta>
+                                        <title lang="de">Block hinzufügen</title>
+                                    </meta>
+                                </param>
+                            </params>
+                            <types>
+                                <type name="time">
+                                    <meta>
+                                        <title lang="de">Zeitraum</title>
+                                    </meta>
+                                    <properties>
+                                        <property name="feature_time" type="text_line">
+                                            <meta>
+                                                <title lang="de">Zeit (von - bis)</title>
+                                            </meta>
+                                        </property>
+                                        <property name="feature_desc" type="text_line">
+                                            <meta>
+                                                <title lang="de">Beschreibung</title>
+                                            </meta>
+                                        </property>
+                                        <property name="feature_list" type="text_area">
+                                            <meta>
+                                                <title lang="de">Aufzählungsliste</title>
+                                            </meta>
+                                        </property>
+                                    </properties>
+                                </type>
+                            </types>
+                        </block>
+
+                    </properties>
+                </type>
+            </types>
+        </block>
+    </properties>
+</template>

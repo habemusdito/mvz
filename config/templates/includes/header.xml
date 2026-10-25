@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- config/templates/includes/header.xml -->
+<!-- Hier stehen die Felder direkt als Liste ohne <block> oder <types> -->
+
+<property name="header_image" type="media_selection">
+    <meta>
+        <title lang="de">Header Bild</title>
+        <title lang="en">Header Image</title>
+    </meta>
+    <params>
+        <param name="types" value="image"/>
+        <param name="max" value="1"/>
+    </params>
+</property>
+
+<property name="header_title" type="text_line" mandatory="true">
+<meta>
+    <title lang="de">Header Titel</title>
+    <title lang="en">Header Title</title>
+</meta>
+</property>
+
+<property name="header_subtitle" type="text_line">
+<meta>
+    <title lang="de">Header Untertitel</title>
+    <title lang="en">Header Subtitle</title>
+</meta>
+</property>
+
+<property name="header_description" type="text_area">
+<meta>
+    <title lang="de">Header Beschreibung</title>
+    <title lang="en">Header Description</title>
+</meta>
+</property>
