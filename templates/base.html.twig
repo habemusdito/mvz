@@ -21,7 +21,7 @@
 <body>
     <header>
         {% block header %}
-            {# include 'layout/header.html.twig' #}
+            {% include 'layout/header.html.twig' %}
         {% endblock %}
     </header>
 
@@ -33,7 +33,7 @@
     #}
 
     <main>
-        {{ dump(app) }}
+
         {% block content %}hello base{% endblock %}
         {# include 'layout/body.html.twig' #}
     </main>

@@ -9,7 +9,26 @@
     <controller>Sulu\Content\UserInterface\Controller\Website\ContentController::indexAction</controller>
 
     <properties>
-        <xi:include href="../includes/header.xml"/>
+        <property name="title" type="text_line" mandatory="true">
+            <meta>
+                <title lang="de">Titel/Name</title>
+            </meta>
+
+            <tag name="sulu.rlp.part"/>
+        </property>
+        <property name="url" type="route" mandatory="true">
+            <meta>
+                <title lang="de">URL</title>
+            </meta>
+
+            <params>
+                <param name="mode" value="tree_full_edit"/>
+            </params>
+
+            <tag name="sulu.rlp"/>
+        </property>
+        <xi:include href="../includes/header.xml"
+                    xpointer="xmlns(sulu=http://schemas.sulu.io/template/template)xpointer(/sulu:properties/sulu:property)"/>
 
         <property name="pages" type="smart_content">
             <meta>
@@ -26,27 +45,9 @@
                     <param name="uuid" value="object.resource.uuid"/>
                     <param name="authored" value="object.authored"/>
                     <param name="lastModified" value="object.lastModified"/>
-                    <param name="excerptTitle" value="excerpt.title" />
-                    <param name="excerptDescription" value="excerpt.description"/>
-                    <param name="excerptMore" value="excerpt.more" />
-                    <param name="excerptTags" value="excerpt.tags" />
-                    <param name="excerptCategories" value="excerpt.categories" />
-                    <param name="excerptImage" value="excerpt.image" />
-                    <param name="excerptIcon" value="excerpt.icon" />
-                </param>
-
-                <param name="present_as" type="collection">
-                    <param name="two">
-                        <meta>
-                            <title lang="en">Two columns</title>
-                        </meta>
-                    </param>
-
-                    <param name="one">
-                        <meta>
-                            <title lang="en">One column</title>
-                        </meta>
-                    </param>
+                    <param name="excerptTitle" value="object.title" />
+                    <param name="excerptDescription" value="description"/>
+                    <param name="excerptImage" value="team-pic"/>
                 </param>
             </params>
         </property>
