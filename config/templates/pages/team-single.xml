@@ -38,6 +38,27 @@
             </meta>
         </property>
 
+        <property name="teamtype" type="single_select">
+            <meta>
+                <title lang="de">Arztteam/Praxisteam</title>
+                <title lang="en">Select</title>
+            </meta>
+            <params>
+                <param name="values" type="collection">
+                    <param name="arzt">
+                        <meta>
+                            <title lang="en">Arztteam</title>
+                        </meta>
+                    </param>
+                    <param name="praxis">
+                        <meta>
+                            <title lang="en">Praxisteam</title>
+                        </meta>
+                    </param>
+                </param>
+            </params>
+        </property>
+
         <block name="sections" default-type="section_block" minOccurs="1">
             <meta>
                 <title lang="de">Abschnitte</title>

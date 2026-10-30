@@ -48,6 +48,7 @@
                     <param name="excerptTitle" value="object.title" />
                     <param name="excerptDescription" value="description"/>
                     <param name="excerptImage" value="team-pic"/>
+                    <param name="excerptType" value="teamtype"/>
                 </param>
             </params>
         </property>

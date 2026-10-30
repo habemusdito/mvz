@@ -13,6 +13,17 @@
         </params>
     </property>
 
+    <property name="header_icon" type="media_selection">
+        <meta>
+            <title lang="de">Header Icon</title>
+            <title lang="en">Header Icon</title>
+        </meta>
+        <params>
+            <param name="types" value="image"/>
+            <param name="max" value="1"/>
+        </params>
+    </property>
+
     <property name="header_title" type="text_line" mandatory="false">
         <meta>
             <title lang="de">Header Titel</title>
@@ -24,6 +35,8 @@
         <meta>
             <title lang="de">Header Untertitel</title>
             <title lang="en">Header Subtitle</title>
+            <info_text lang="de">Text zwischen *Sternchen* wird farbig hervorgehoben.</info_text>
+            <info_text lang="en">Text between *asterisks* is highlighted.</info_text>
         </meta>
     </property>
 

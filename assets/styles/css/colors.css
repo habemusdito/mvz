@@ -19,7 +19,8 @@
     --color-secondary-800: #31475A;
     --color-secondary-900: #18242D;
 
-    --color-third: #0092A7;
+    --color-third: var(--third);
+    --color-third-50:  #ddfbff;
     --color-third-100: #CCE9ED;
     --color-third-200: #99D3DC;
     --color-third-300: #66BECA;
@@ -29,7 +30,7 @@
     --color-third-800: #003A43;
     --color-third-900: #001D21;
 
-    --color-forth: #811788;
+    --color-forth: var(--forth);
     --color-forth-100: #E6D1E7;
     --color-forth-200: #CDA2EF;
     --color-forth-300: #B374B8;

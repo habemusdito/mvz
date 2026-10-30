@@ -1,5 +1,5 @@
 @theme {
-    --font-heading: 'mozregular', sans-serif;
+
 }
 
 .moz-light {
@@ -39,7 +39,3 @@
     font-weight: 400;
 }
 
-.exo-light {
-    font-family: 'exolight';
-    font-weight: 200;
-}

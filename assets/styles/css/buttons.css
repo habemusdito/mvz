@@ -1,0 +1,22 @@
+.btn-forth {
+    @apply btn-base; background: var(--gradient-forth); color: white;
+    &:hover {
+        transform: translateY(-1px);
+    }
+}
+
+.btn-third {
+    @apply btn-base; background: var(--gradient-third); color: white;
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+}
+
+.btn-white {
+    @apply btn-base; background: white; color: black; border: 1px solid black;
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+}

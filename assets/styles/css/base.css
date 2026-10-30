@@ -1,3 +1,7 @@
 .container {
     @apply mx-auto;
 }
+
+.nav-active {
+    @apply border-b-third
+}

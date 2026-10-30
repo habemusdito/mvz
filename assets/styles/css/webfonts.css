@@ -39,7 +39,7 @@
 }
 
 @font-face {
-    font-family: 'exo';
+    font-family: 'exoregular';
     src: url('../fonts/exo/exo2-regular-webfont.woff2') format('woff2'),
     url('../fonts/exo/exo2-regular-webfont.woff') format('woff');
     font-weight: 400;
@@ -49,7 +49,7 @@
 }
 
 @font-face {
-    font-family: 'exo';
+    font-family: 'exobold';
     src: url('../fonts/exo/exo2-bold-webfont.woff2') format('woff2'),
     url('../fonts/exo/exo2-bold-webfont.woff') format('woff');
     font-weight: 600;
@@ -59,7 +59,7 @@
 }
 
 @font-face {
-    font-family: 'exo';
+    font-family: 'exoblack';
     src: url('../fonts/exo/exo2-black-webfont.woff2') format('woff2'),
     url('../fonts/exo/exo2-black-webfont.woff') format('woff');
     font-weight: 800;
