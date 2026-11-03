@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<template xmlns="http://schemas.sulu.io/template/template"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns:xi="http://www.w3.org/2001/XInclude"
+          xsi:schemaLocation="http://schemas.sulu.io/template/template http://schemas.sulu.io/template/template-1.0.xsd">
+
+    <key>overview</key>
+    <view>pages/overview</view>
+    <controller>Sulu\Content\UserInterface\Controller\Website\ContentController::indexAction</controller>
+
+    <properties>
+        <property name="title" type="text_line" mandatory="true">
+            <meta>
+                <title lang="de">Titel/Name</title>
+            </meta>
+
+            <tag name="sulu.rlp.part"/>
+        </property>
+        <property name="url" type="route" mandatory="true">
+            <meta>
+                <title lang="de">URL</title>
+            </meta>
+
+            <params>
+                <param name="mode" value="tree_full_edit"/>
+            </params>
+
+            <tag name="sulu.rlp"/>
+        </property>
+        <xi:include href="../includes/header.xml"
+                    xpointer="xmlns(sulu=http://schemas.sulu.io/template/template)xpointer(/sulu:properties/sulu:property)"/>
+
+        <property name="pages" type="smart_content">
+            <meta>
+                <title lang="de">Smart Content</title>
+            </meta>
+
+            <params>
+                <param name="provider" value="pages"/>
+                <param name="max_per_page" value="5"/>
+                <param name="page_parameter" value="p"/>
+
+                <param name="properties" type="collection">
+                    <param name="article" value="article"/>
+                    <param name="uuid" value="object.resource.uuid"/>
+                    <param name="authored" value="object.authored"/>
+                    <param name="lastModified" value="object.lastModified"/>
+                    <param name="excerptTitle" value="object.title" />
+                    <param name="excerptDescription" value="description"/>
+                    <param name="excerptImage" value="team-pic"/>
+                    <param name="excerptType" value="teamtype"/>
+                </param>
+            </params>
+        </property>
+    </properties>
+</template>

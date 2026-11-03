@@ -11,6 +11,13 @@ ux_icons:
         height: '1em'
         width: '1em'
 
+    # Per-icon-set overrides
+    icon_sets:
+        tabler:
+            # Tabler outline icons are stroke-based (fill: none), not fill-based
+            icon_attributes:
+                fill: none
+
     # Throw an exception if an icon is not
     ignore_not_found: false
 

@@ -2,7 +2,7 @@
 <!-- config/templates/includes/header.xml -->
 <!-- Wird per xi:include (xpointer auf /properties/*) in Seiten-Templates eingebunden -->
 <properties xmlns="http://schemas.sulu.io/template/template">
-    <property name="header_image" type="media_selection">
+    <property name="header_image" type="single_media_selection">
         <meta>
             <title lang="de">Header Bild</title>
             <title lang="en">Header Image</title>
@@ -13,7 +13,7 @@
         </params>
     </property>
 
-    <property name="header_icon" type="media_selection">
+    <property name="header_icon" type="single_media_selection">
         <meta>
             <title lang="de">Header Icon</title>
             <title lang="en">Header Icon</title>
