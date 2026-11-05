@@ -1,7 +1,63 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-    <h1>{{ content.title }}</h1>
+    <div class="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 px-4 relative mx-auto">
+        {% set media = sulu_resolve_media('3', 'de') %}
+        <img class="animate-rise opacity-50 xl:opacity-100 mask-l-from-50% mask-l-to-95% min-h-100 object-cover rounded-3xl" src="{{ media.url }}" alt="">
+        <div class="absolute top-4 lg:top-10 xl:top-20 left-0 w-full">
+            <div class="mx-auto max-w-screen-md lg:max-w-screen-xl py-2 px-4">
+                <div class="w-full xl:w-1/2 ps-4 lg:ps-0">
+                    <h1 class="eyebrow animate-rise text-third mb-3">Unser Anspruch</h1>
+                    <h2 class="font-heading text-4xl md:text-7xl text-gray">Ihre <span class="animate-rise bg-gradient-to-r from-third-700 to-third-400 bg-clip-text text-transparent">Gesundheit</span> im Fokus</h2>
+                    <p class="lg:w-2/3 mt-6 md:text-lg text-muted-foreground animate-rise [animation-delay:160ms]">Hier ein fehlender text zur Information über die Praxis und so weiter und so fort.</p>
+                </div>
+            </div>
+        </div>
+        {% include 'includes/allcontact.html.twig' %}
+    </div>
 
-    {{ content.article|raw }}
+    <div class="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 px-4 relative mx-auto">
+        <div class="w-full lg:w-2/3">
+            {% set media = sulu_resolve_media('4', 'de') %}
+            <img class="animate-rise opacity-50 xl:opacity-100 mask-r-from-50% mask-r-to-95% min-h-100 object-cover rounded-3xl" src="{{ media.url }}" alt="">
+            <div class="absolute top-4 lg:top-10 xl:top-20 right-4 w-3/4 lg:w-1/2">
+                <div class="bg-white/50 p-2 md:p-6 border border-third-300 rounded-xl shadow-xl mb-4">
+                    {{ ux_icon('tabler:stethoscope', {class: 'w-8 h-8 mb-4 hidden md:block'}) }}
+                    <h3 class="font-heading text-lg mb-3"><a href="#" class="hover:text-primary">Privatpraxis für Prävention und Regeneration</a></h3>
+                    <span class="text-sm hidden md:block">Selbstzahler & Privatpatienten | Dr. med Thea Motsch - Fachärztin für Allgemeinmedizin, Naturheilverfahren, Homöopathie</span>
+                    <div class="flex justify-end mt-4">
+                        <a href="#" class="btn-third inline-flex items-end">
+                            mehr Info
+                            {{ ux_icon('tabler:arrow-bar-right', {class: 'w-6 h-6 ms-4'}) }}
+                        </a>
+                    </div>
+                </div>
+                <div class="bg-white/50 p-6 border border-third-300 rounded-xl shadow-xl mb-4">
+                    {{ ux_icon('tabler:stethoscope', {class: 'w-8 h-8 mb-4 hidden md:block'}) }}
+                    <h3 class="font-heading text-lg mb-3"><a href="#" class="hover:text-primary">Allgemeinmedizinische Hausarztpraxis</a></h3>
+                    <span class="text-sm hidden md:block">Alle Kassen</span>
+                    <div class="flex justify-end mt-4">
+                        <a href="#" class="btn-third inline-flex items-end">
+                            mehr Info
+                            {{ ux_icon('tabler:arrow-bar-right', {class: 'w-6 h-6 ms-4'}) }}
+                        </a>
+                    </div>
+                </div>
+                <div class="bg-white/50 p-6 border border-third-300 rounded-xl shadow-xl mb-4">
+                    {{ ux_icon('tabler:stethoscope', {class: 'w-8 h-8 mb-4 hidden md:block'}) }}
+                    <h3 class="font-heading text-lg mb-3"><a href="#" class="hover:text-primary">Laborärztliche Praxis</a></h3>
+                    <span class="text-sm hidden md:block">Die ärztliche Beratung kann Vor-Ort oder als Online-Sprechstunde per Telefon oder Video erfolgen</span>
+                    <div class="flex justify-end mt-4">
+                        <a href="#" class="btn-third inline-flex items-end">
+                            mehr Info
+                            {{ ux_icon('tabler:arrow-bar-right', {class: 'w-6 h-6 ms-4'}) }}
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
 {% endblock %}

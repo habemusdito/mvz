@@ -1,44 +1,11 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-    <div class="container mt-10 px-4 md:px-0">
-        <div class="flex items-start p-4 mb-4 text-forth-600 text-xl md:text-2xl rounded-xl bg-forth-100" role="alert">
-            {{ ux_icon('tabler:info-circle', {class: 'w-8 h-8 me-4'}) }}
-            <p>Alle Arzttermine werden nur nach telefonischer Vereinbarung vergeben.</p>
-        </div>
+    {% if content.url is same as '/sprechzeiten' %}
+        {% include 'pages/sprechzeiten.html.twig' %}
+    {% else %}
+        {% include 'pages/behandlungsschwerpunkte.html.twig' %}
+    {% endif %}
 
-        <div class="grid grid-cols-2 gap-x-4 mt-20">
-            <div class="col-span-1 md_col-span-2">
-                <div class="border-b border-b-gray mb-4">
-                    <h2 class="font-heading text-gray-900 text-4xl px-4 pt-4 uppercase">Sprechzeiten Praxis</h2>
-                </div>
-                <div class="bg-white/50 shadow-2xl p-4 mb-4">
-                    <div class="bg-white border-1 border-rose-800 rounded-xl text-rose-800 mb-4 p-4">
-                        Bitte tragen Sie einen Mund-Nasen-Schutz bei Erkältungssymptomen.
-                    </div>
-                    <p class="mb-2 moz-bold text-lg">Montag, Dienstag und Donnerstag</p>
-                    <p>08:00 - 13:00 Uhr<br>14:00 - 17:00 Uhr</p>
-                    <p class="mb-2 moz-bold text-lg">Mittwoch</p>
-                    <p>08:00 - 13:00 Uhr <br>14:00 - 16:30 Uhr</p>
-                    <p class="mb-2 moz-bold text-lg">Freitag</p>
-                    <p>08:00 - 13:00 Uhr</p>
-                    <p class="mt-2">Und nach Vereinbarung.</p>
-                </div>
-            </div>
-            <div class="col-span-1 md_col-span-2">
-                <div class="border-b border-b-gray mb-4">
-                    <h2 class="font-heading text-gray-900 text-4xl px-4 pt-4 uppercase">Blutentnahmezeiten</h2>
-                </div>
-                <div class="bg-white/50 shadow-2xl p-4 mb-8">
-                    <p class="mb-2 moz-bold text-lg">Montag bis Donnerstag</p>
-                    <p>08:00 - 12:30 Uhr<br>14:00 - 16:00 Uhr</p>
-                    <p class="mb-2 moz-bold text-lg">Freitag</p>
-                    <p>08:00 - 12:30 Uhr</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <h1>{{ content.title }}</h1>
 
-    {{ content.article|raw }}
 {% endblock %}

@@ -17,7 +17,9 @@
 .btn-white {
     @apply btn-base; background: white; color: black; border: 1px solid black;
     &:hover {
+        @apply bg-secondary-100;
         transform: translateY(-1px);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+
     }
 }
