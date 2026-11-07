@@ -1,6 +1,7 @@
 <?xml version="1.0" ?>
 <template xmlns="http://schemas.sulu.io/template/template"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns:xi="http://www.w3.org/2001/XInclude"
           xsi:schemaLocation="http://schemas.sulu.io/template/template http://schemas.sulu.io/template/template-1.0.xsd">
 
     <key>default</key>
@@ -36,11 +37,85 @@
             <tag name="sulu.rlp"/>
         </property>
 
-        <property name="article" type="text_editor">
+        <xi:include href="../includes/header.xml"
+                    xpointer="xmlns(sulu=http://schemas.sulu.io/template/template)xpointer(/sulu:properties/sulu:property)"/>
+
+        <property name="header_more_description" type="text_editor">
             <meta>
-                <title lang="en">Article</title>
-                <title lang="de">Artikel</title>
+                <title lang="de">erweiterte Beschreibung</title>
             </meta>
         </property>
+
+        <block name="sections" default-type="section_block">
+            <meta>
+                <title lang="de">Abschnitte</title>
+            </meta>
+            <params>
+                <param name="add_button_text">
+                    <meta>
+                        <title lang="de">Block hinzufügen</title>
+                    </meta>
+                </param>
+            </params>
+            <types>
+                <type name="section_block">
+                    <meta>
+                        <title lang="de">Absatz</title>
+                    </meta>
+                    <properties>
+                        <property name="header_image" type="single_media_selection">
+                            <meta>
+                                <title lang="de">Header Bild</title>
+                                <title lang="en">Header Image</title>
+                            </meta>
+                            <params>
+                                <param name="types" value="image"/>
+                                <param name="max" value="1"/>
+                            </params>
+                        </property>
+
+                        <property name="header_icon" type="single_media_selection">
+                            <meta>
+                                <title lang="de">Header Icon</title>
+                                <title lang="en">Header Icon</title>
+                            </meta>
+                            <params>
+                                <param name="types" value="image"/>
+                                <param name="max" value="1"/>
+                            </params>
+                        </property>
+
+                        <property name="header_title" type="text_line" mandatory="false">
+                            <meta>
+                                <title lang="de">Header Titel</title>
+                                <title lang="en">Header Title</title>
+                            </meta>
+                        </property>
+
+                        <property name="header_subtitle" type="text_line">
+                            <meta>
+                                <title lang="de">Header Untertitel</title>
+                                <title lang="en">Header Subtitle</title>
+                                <info_text lang="de">Text zwischen *Sternchen* wird farbig hervorgehoben.</info_text>
+                                <info_text lang="en">Text between *asterisks* is highlighted.</info_text>
+                            </meta>
+                        </property>
+
+                        <property name="header_description" type="text_area">
+                            <meta>
+                                <title lang="de">Header Beschreibung</title>
+                                <title lang="en">Header Description</title>
+                            </meta>
+                        </property>
+                        <property name="header_more_description" type="text_editor">
+                            <meta>
+                                <title lang="de">erweiterte Beschreibung</title>
+                            </meta>
+                        </property>
+                    </properties>
+                </type>
+            </types>
+        </block>
+
     </properties>
 </template>

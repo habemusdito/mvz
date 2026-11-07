@@ -1,7 +1,7 @@
 <h2 class="font-heading text-4xl md:text-7xl text-gray">
-    {%- for part in content.header_subtitle|default('')|split('*') -%}
+    {%- for part in text|default('')|split('*') -%}
         {%- if loop.index0 is odd -%}
-            <span class="animate-rise bg-gradient-to-r from-third-700 to-third-400 bg-clip-text text-transparent">{{ part }}</span>
+            <span class="animate-rise bg-gradient-to-r from-third-400 to-third-700 bg-clip-text text-transparent">{{ part }}</span>
         {%- else -%}
             {{ part }}
         {%- endif -%}

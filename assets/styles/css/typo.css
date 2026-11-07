@@ -39,3 +39,15 @@
     font-weight: 400;
 }
 
+.feature-list ul {
+    @apply ms-4
+}
+
+.feature-list li {
+    @apply list-disc text-xl
+}
+
+.list-more-description li {
+    @apply border-1 border-third text-lg text-third font-semibold p-2 inline-block rounded-2xl bg-white/50 inline-block m-2
+}
+

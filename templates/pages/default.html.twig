@@ -3,9 +3,57 @@
 {% block content %}
     {% if content.url is same as '/sprechzeiten' %}
         {% include 'pages/sprechzeiten.html.twig' %}
-    {% else %}
+    {% endif %}
+    {% if content.url is same as '/behandlungsschwerpunkte' %}
         {% include 'pages/behandlungsschwerpunkte.html.twig' %}
     {% endif %}
+
+    <div class="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 px-4 relative mx-auto">
+        <img class="animate-rise opacity-50 xl:opacity-100 lg:mask-l-from-50% lg:mask-l-to-95% min-h-100 object-cover rounded-3xl" src="{{ content.header_image.url }}">
+        <div class="absolute top-4 lg:top-10 xl:top-20 left-0 w-full">
+            <div class="mx-auto max-w-screen-md lg:max-w-screen-xl py-2 px-4">
+                <div class="w-full xl:w-1/2 ps-4 lg:ps-0">
+                    <h1 class="eyebrow animate-rise text-third mb-3">{{ content.header_title }}</h1>
+                    {% include 'includes/highlight.html.twig' with { text: content.header_subtitle } %}
+                    <p class="lg:w-2/3 mt-6 md:text-lg text-muted-foreground animate-rise [animation-delay:160ms]">{{ content.header_description }}</p>
+                </div>
+            </div>
+        </div>
+        {% if content.header_more_description %}
+            <div class="list-more-description mt-4">
+                {{ content.header_more_description|raw }}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if content.sections %}
+        {% set text = '' %}
+        <div class="grid grid-cols-3 max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 px-4 pt-4 relative mx-auto border-t border-t-gray-900">
+            {% for section in content.sections %}
+                <div class="col-span-{{ section.header_image ? '2' : '3' }}">
+                    <h1 class="eyebrow animate-rise text-third">{{ section.header_title }}</h1>
+                    {% include 'includes/highlight.html.twig' with { text: section.header_subtitle } %}
+                    <p class="text-muted-foreground animate-rise [animation-delay:160ms] mt-4">{{ section.header_description }}</p>
+                </div>
+                {% if section.header_image %}
+                    <div class="col-span-1">
+                        <img class="animate-rise opacity-50 xl:opacity-100 lg:mask-l-from-50% lg:mask-l-to-95% min-h-100 object-cover rounded-3xl" src="{{ section.header_image.url }}">
+                    </div>
+                {% endif %}
+                {% if content.header_more_description %}
+                    <div class="col-span-3">
+                        <div class="list-more-description mt-4">
+                            {{ section.header_more_description|raw }}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <div class="col-span-3 border-t border-t-gray-900 pt-4 mt-10">
+                {% include 'includes/allcontact.html.twig' %}
+            </div>
+        </div>
+    {% endif %}
+
 
 
 {% endblock %}

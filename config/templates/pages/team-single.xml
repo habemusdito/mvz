@@ -32,7 +32,7 @@
                 <title lang="de">Bezeichnung</title>
             </meta>
         </property>
-        <property name="team-pic" type="single_media_selection">
+        <property name="teampic" type="single_media_selection">
             <meta>
                 <title lang="de">Bild</title>
             </meta>
@@ -109,7 +109,7 @@
                                                 <title lang="de">Beschreibung</title>
                                             </meta>
                                         </property>
-                                        <property name="feature_list" type="text_area">
+                                        <property name="feature_list" type="text_editor">
                                             <meta>
                                                 <title lang="de">Aufzählungsliste</title>
                                             </meta>
