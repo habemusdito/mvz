@@ -112,6 +112,16 @@
                                 <title lang="de">erweiterte Beschreibung</title>
                             </meta>
                         </property>
+                        <property name="quote" type="text_area">
+                            <meta>
+                                <title lang="de">Zitat</title>
+                            </meta>
+                        </property>
+                        <property name="author" type="text_line">
+                            <meta>
+                                <title lang="de">Author</title>
+                            </meta>
+                        </property>
                     </properties>
                 </type>
             </types>

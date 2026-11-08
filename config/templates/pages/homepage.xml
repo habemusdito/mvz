@@ -36,11 +36,23 @@
             <tag name="sulu.rlp"/>
         </property>
 
-        <property name="article" type="text_editor">
+
+        <property name="pages" type="smart_content">
             <meta>
-                <title lang="en">Article</title>
-                <title lang="de">Artikel</title>
+                <title lang="de">Smart Content</title>
             </meta>
+
+            <params>
+                <param name="provider" value="pages"/>
+                <param name="max_per_page" value="5"/>
+                <param name="page_parameter" value="p"/>
+
+                <param name="properties" type="collection">
+                    <param name="uuid" value="object.resource.uuid"/>
+                    <param name="excerptTitle" value="header_title" />
+                    <param name="excerptDescription" value="header_description"/>
+                </param>
+            </params>
         </property>
     </properties>
 </template>
