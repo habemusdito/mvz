@@ -1,0 +1,6 @@
+{# Gibt ein Bild aus dem Mediencenter aus; format = Schlüssel aus config/image-formats.xml, sonst Original. #}
+{% props image = null, format = null %}
+{% if image %}
+    <img {{ attributes.defaults({class: 'animate-rise opacity-50 xl:opacity-100 lg:mask-l-from-50% lg:mask-l-to-95% min-h-100 object-cover rounded-3xl'}) }}
+         src="{{ format ? image.thumbnails[format] : image.url }}" alt="{{ image.title }}">
+{% endif %}

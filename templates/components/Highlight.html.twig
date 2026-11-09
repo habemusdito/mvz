@@ -1,0 +1,13 @@
+{# Gibt einen Text aus, in dem *markierte* Teile farbig hervorgehoben werden; rendert nichts ohne Text. #}
+{% props text = null, tag = 'h2' %}
+{% if text %}
+    <{{ tag }} {{ attributes.defaults({class: 'font-heading text-4xl md:text-7xl text-gray'}) }}>
+        {%- for part in text|split('*') -%}
+            {%- if loop.index0 is odd -%}
+                <span class="animate-rise bg-gradient-to-r from-third-400 to-third-700 bg-clip-text text-transparent">{{ part }}</span>
+            {%- else -%}
+                {{ part }}
+            {%- endif -%}
+        {%- endfor -%}
+    </{{ tag }}>
+{% endif %}

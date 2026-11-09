@@ -1,0 +1,110 @@
+{% extends 'base.html.twig' %}
+
+{% block meta %}
+    <title>Blutentnahmetermin buchen – MVZ Ganzimmun</title>
+    <meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% macro field(name, label, data, errors, type = 'text', attrs = '') %}
+    <div class="mb-4">
+        <label for="{{ name }}" class="block mb-1 font-semibold">{{ label }}</label>
+        <input type="{{ type }}" id="{{ name }}" name="{{ name }}" value="{{ data[name] }}" {{ attrs|raw }}
+               class="w-full rounded-lg border {{ errors[name] is defined ? 'border-rose-700 bg-rose-50' : 'border-gray-300' }} p-2.5">
+        {% if errors[name] is defined %}<p class="mt-1 text-sm text-rose-800">{{ errors[name] }}</p>{% endif %}
+    </div>
+{% endmacro %}
+
+{% block content %}
+    {% import _self as form %}
+    {% set weekdays = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'] %}
+
+    <div class="container mt-10 xl:mt-20 mb-20 px-4 md:px-0">
+        <div class="max-w-2xl bg-white/50 shadow-xl p-6 md:p-10 rounded-3xl">
+            <h1 class="font-heading text-gray-900 text-3xl md:text-4xl uppercase">Ihr Blutentnahmetermin</h1>
+            <p class="text-xl text-third-700 mt-2">
+                {# false: Zeitzone des Termins (Europe/Berlin) beibehalten statt in die Twig-Standardzeitzone umzurechnen #}
+                {{ weekdays[start|date('w', false)] }}, {{ start|date('d.m.Y', false) }} um {{ start|date('H:i', false) }} Uhr
+            </p>
+            <hr class="border-third my-6">
+            <p class="mb-6">Bitte füllen Sie die nachstehenden Felder aus:</p>
+
+            {% if errors._form is defined %}
+                <div class="p-4 mb-6 text-rose-800 rounded-xl bg-rose-100" role="alert">{{ errors._form }}</div>
+            {% elseif errors is not empty %}
+                <div class="p-4 mb-6 text-rose-800 rounded-xl bg-rose-100" role="alert">Bitte prüfen Sie die markierten Felder.</div>
+            {% endif %}
+
+            <form method="post" action="{{ path('etermin_book', {start: start|date('Y-m-d\\TH:i', false)}) }}" novalidate>
+                <input type="hidden" name="_token" value="{{ csrf_token('etermin') }}">
+
+                <div class="mb-4">
+                    <label for="Salutation" class="block mb-1 font-semibold">Anrede</label>
+                    <select id="Salutation" name="Salutation"
+                            class="w-full rounded-lg border {{ errors.Salutation is defined ? 'border-rose-700 bg-rose-50' : 'border-gray-300' }} p-2.5">
+                        <option value="">bitte Anrede wählen</option>
+                        {% for salutation in ['Frau', 'Herr', 'Divers'] %}
+                            <option value="{{ salutation }}" {{ data.Salutation == salutation ? 'selected' }}>{{ salutation }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if errors.Salutation is defined %}<p class="mt-1 text-sm text-rose-800">{{ errors.Salutation }}</p>{% endif %}
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-x-4">
+                    {{ form.field('FirstName', 'Vorname', data, errors, 'text', 'autocomplete="given-name" required') }}
+                    {{ form.field('LastName', 'Nachname', data, errors, 'text', 'autocomplete="family-name" required') }}
+                </div>
+
+                <fieldset class="mb-4">
+                    <legend class="block mb-1 font-semibold">Geburtsdatum</legend>
+                    <div class="flex gap-2">
+                        {% for part in [
+                            {name: 'gebday', placeholder: 'TT', size: 2, width: 'w-16'},
+                            {name: 'gebmonth', placeholder: 'MM', size: 2, width: 'w-16'},
+                            {name: 'gebyear', placeholder: 'JJJJ', size: 4, width: 'w-24'},
+                        ] %}
+                            <input type="text" inputmode="numeric" name="{{ part.name }}" value="{{ data[part.name] }}"
+                                   maxlength="{{ part.size }}" placeholder="{{ part.placeholder }}" aria-label="{{ part.placeholder }}"
+                                   class="{{ part.width }} rounded-lg border {{ errors[part.name] is defined ? 'border-rose-700 bg-rose-50' : 'border-gray-300' }} p-2.5">
+                        {% endfor %}
+                    </div>
+                    {% set birthdayError = errors.gebday ?? errors.gebmonth ?? errors.gebyear ?? null %}
+                    {% if birthdayError %}<p class="mt-1 text-sm text-rose-800">{{ birthdayError }}</p>{% endif %}
+                </fieldset>
+
+                {{ form.field('Street', 'Straße und Hausnummer', data, errors, 'text', 'autocomplete="street-address" required') }}
+                <div class="grid grid-cols-3 gap-x-4">
+                    <div class="col-span-1">{{ form.field('ZIP', 'PLZ', data, errors, 'text', 'inputmode="numeric" autocomplete="postal-code" required') }}</div>
+                    <div class="col-span-2">{{ form.field('City', 'Ort', data, errors, 'text', 'autocomplete="address-level2" required') }}</div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-x-4">
+                    {{ form.field('Phone', 'Telefon', data, errors, 'tel', 'autocomplete="tel" required') }}
+                    {{ form.field('Email', 'E-Mail', data, errors, 'email', 'autocomplete="email" required') }}
+                </div>
+
+                <div class="mb-4">
+                    <label for="Notes" class="block mb-1 font-semibold">Bemerkung / welche Analysen sollen durchgeführt werden</label>
+                    <textarea id="Notes" name="Notes" rows="4"
+                              class="w-full rounded-lg border {{ errors.Notes is defined ? 'border-rose-700 bg-rose-50' : 'border-gray-300' }} p-2.5">{{ data.Notes }}</textarea>
+                    {% if errors.Notes is defined %}<p class="mt-1 text-sm text-rose-800">{{ errors.Notes }}</p>{% endif %}
+                </div>
+
+                <div class="mb-8">
+                    <label for="AppReminder" class="block mb-1 font-semibold">Terminerinnerung</label>
+                    <select id="AppReminder" name="AppReminder" class="w-full rounded-lg border border-gray-300 p-2.5">
+                        {% for value, label in reminderOptions %}
+                            <option value="{{ value }}" {{ (value ~ '') == data.AppReminder ? 'selected' }}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex flex-wrap justify-between gap-4">
+                    <a href="{{ path('etermin_index') }}" class="btn-white">abbrechen</a>
+                    <button type="submit" class="btn-third cursor-pointer">
+                        Termin buchen
+                        {{ ux_icon('tabler:arrow-bar-right', {class: 'w-6 h-6 ms-4'}) }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,5 @@
+{# Gibt einen einfachen Text im gewünschten Tag aus; rendert nichts, wenn der Text leer ist. #}
+{% props value = null, tag = 'p' %}
+{% if value %}
+    <{{ tag }} {{ attributes }}>{{ value }}</{{ tag }}>
+{% endif %}

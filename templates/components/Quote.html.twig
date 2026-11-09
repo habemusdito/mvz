@@ -1,0 +1,8 @@
+{# Gibt ein Zitat mit optionalem Autor aus; rendert nichts ohne Zitat. #}
+{% props quote = null, author = null %}
+{% if quote %}
+    <blockquote {{ attributes.defaults({class: 'p-4 my-4'}) }}>
+        <p class="text-2xl italic font-semibold leading-relaxed text-forth">{{ quote }}</p>
+        {% if author %}<p class="text-sm text-right">{{ author }}</p>{% endif %}
+    </blockquote>
+{% endif %}

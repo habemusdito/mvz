@@ -1,0 +1,7 @@
+{# Gibt ein text_editor-Feld aus; rendert nichts, wenn das Feld leer ist. #}
+{% props value = null %}
+{% if value %}
+    <div {{ attributes.defaults({class: 'list-more-description mt-4'}) }}>
+        {{ value|raw }}
+    </div>
+{% endif %}
