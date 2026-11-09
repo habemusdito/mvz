@@ -1,0 +1,21 @@
+framework:
+    session:
+        storage_factory_id: session.storage.factory.mock_file
+        handler_id: ~
+
+    lock: 'flock://%kernel.project_dir%/var/lock'
+
+security:
+    access_decision_manager:
+        strategy: affirmative
+
+    password_hashers:
+        Sulu\Bundle\SecurityBundle\Entity\User: 'plaintext'
+
+    providers:
+        testprovider:
+            id: test_user_provider
+
+    firewalls:
+        test:
+            http_basic: ~

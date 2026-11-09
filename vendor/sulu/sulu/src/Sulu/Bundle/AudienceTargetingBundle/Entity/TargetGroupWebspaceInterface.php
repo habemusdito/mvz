@@ -1,0 +1,28 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Bundle\AudienceTargetingBundle\Entity;
+
+/**
+ * Interface for target group webspace definition.
+ */
+interface TargetGroupWebspaceInterface
+{
+    public function getId(): int;
+
+    public function getWebspaceKey(): string;
+
+    public function setWebspaceKey(string $webspaceKey): static;
+
+    public function getTargetGroup(): TargetGroupInterface;
+
+    public function setTargetGroup(TargetGroupInterface $targetGroup): static;
+}

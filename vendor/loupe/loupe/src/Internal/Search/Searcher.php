@@ -1,0 +1,1987 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Loupe\Loupe\Internal\Search;
+
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Query\QueryBuilder;
+use Doctrine\DBAL\Result;
+use Location\Bounds;
+use Loupe\Loupe\BrowseParameters;
+use Loupe\Loupe\BrowseResult;
+use Loupe\Loupe\Configuration;
+use Loupe\Loupe\Exception\InvalidSearchParametersException;
+use Loupe\Loupe\Internal\Engine;
+use Loupe\Loupe\Internal\Filter\Parser;
+use Loupe\Loupe\Internal\Index\IndexInfo;
+use Loupe\Loupe\Internal\LoupeTypes;
+use Loupe\Loupe\Internal\Search\FilterBuilder\FilterBuilder;
+use Loupe\Loupe\Internal\Util;
+use Loupe\Loupe\SearchParameters;
+use Loupe\Loupe\SearchResult;
+use Loupe\Matcher\FormatterOptions;
+use Loupe\Matcher\FormatterResult;
+use Loupe\Matcher\Tokenizer\Phrase;
+use Loupe\Matcher\Tokenizer\Token;
+use Loupe\Matcher\Tokenizer\TokenCollection;
+
+/**
+ * Searcher class.
+ *
+ * Builds and runs the search SQL as a chain of CTEs.
+ *
+ * Per-token pipeline:
+ *
+ *   _cte_term_matches_<token> (term ids matching the token, including typo/prefix variants)
+ *     -> _cte_term_documents_<token> (distinct documents containing any of those terms)
+ *          -> _cte_candidate_documents (UNION of every token's term-documents = "matches any term")
+ *               -> _cte_term_document_matches_<token> (per-token positional matches, restricted to candidate documents)
+ *                    -> _cte_matches (final per-document aggregation feeding ranking/selection)
+ *
+ * @template T of AbstractQueryParameters
+ */
+class Searcher
+{
+    public const CTE_ALL_MULTI_FILTERS_PREFIX = '_cte_mf_all_';
+
+    public const CTE_CANDIDATE_DOCUMENTS = '_cte_candidate_documents';
+
+    public const CTE_MATCHES = '_cte_matches';
+
+    public const CTE_TERM_DOCUMENT_MATCHES_PREFIX = '_cte_term_document_matches_';
+
+    public const CTE_TERM_DOCUMENT_POSITIONS_PREFIX = '_cte_term_document_positions_';
+
+    public const CTE_TERM_DOCUMENTS_PREFIX = '_cte_term_documents_';
+
+    public const CTE_TERM_MATCHES_PREFIX = '_cte_term_matches_';
+
+    public const DISTANCE_ALIAS = '_distance';
+
+    public const DISTINCT_RANK_ALIAS = '_distinct_rank';
+
+    public const DISTINCT_VALUE_ALIAS = '_distinct_value';
+
+    public const DOCUMENT_ID_ALIAS = '_document_id';
+
+    public const FACET_ALIAS_COUNT_PREFIX = '_facet_count_';
+
+    public const FACET_ALIAS_MIN_MAX_PREFIX = '_facet_minmax_';
+
+    public const MATCH_POSITION_INFO_PREFIX = '_match_position_info_';
+
+    public const RELEVANCE_ALIAS = '_relevance';
+
+    /**
+     * Limit how many leading chars we may trim for the last token when looking
+     * up cached snapshots. This improves cache reuse for incremental typing by
+     * allowing matches from a recent shorter suffix (up to 2 chars trimmed).
+     */
+    private const MAX_PREFIX_CHARS_TO_TRIM_FOR_LAST_TOKEN_CACHE_REUSE = 2;
+
+    /**
+     * @var array<string, Cte>
+     */
+    private array $ctesByName = [];
+
+    /**
+     * @var array<string, array<string, Cte>>
+     */
+    private array $ctesByTag = [];
+
+    private TokenCollection|null $displayTokens = null;
+
+    private readonly FilterBuilder $filterBuilder;
+
+    /**
+     * @var array<array{sort: string, order: string, needsMaterialization: bool}>
+     */
+    private array $orderByParts = [];
+
+    private QueryBuilder $queryBuilder;
+
+    private TokenCollection|null $searchTokens = null;
+
+    private Sorting $sorting;
+
+    private bool $fullResultCountRequired = false;
+
+    private bool $matchesJoined = false;
+
+    private bool $resultConstrainedToMatches = false;
+
+    /**
+     * @param T $queryParameters
+     */
+    public function __construct(
+        private readonly Engine $engine,
+        Parser $filterParser,
+        private readonly AbstractQueryParameters $queryParameters,
+    ) {
+        if ($this->queryParameters instanceof SearchParameters) {
+            $this->sorting = Sorting::fromArray($this->queryParameters->getSort(), $this->engine);
+        } else {
+            $this->sorting = Sorting::fromArray([], $this->engine);
+        }
+
+        $this->queryBuilder = $this->engine->getConnection()->createQueryBuilder();
+        $this->filterBuilder = new FilterBuilder(
+            $this->engine,
+            $this,
+            $filterParser->getAst($this->queryParameters->getFilter()),
+            $this->engine->getQueryCache(),
+        );
+    }
+
+    /**
+     * This creates a UNION ALL CTE for all the filter CTEs that were added
+     * for a specific attribute. So if you e.g. searched for "multi IN ('foobar') OR multi IN('baz')", it will
+     * UNION those two filter CTEs in order to find all matching rows.
+     */
+    public function addAllMultiFiltersCte(string $attribute, string $alias): string|null
+    {
+        $cteName = self::CTE_ALL_MULTI_FILTERS_PREFIX.$attribute;
+
+        if ($this->hasCTE($cteName)) {
+            return $cteName;
+        }
+
+        $unions = [];
+
+        foreach ($this->getCtesByTag('attribute:'.$attribute) as $cte) {
+            $unions[] = \sprintf('SELECT document_id, %s FROM %s', $alias, $cte->getName());
+        }
+
+        if ([] === $unions) {
+            return null;
+        }
+
+        $qb = $this->engine->getConnection()->createQueryBuilder();
+        $qb->select('document_id', $alias);
+        $qb->from('('.implode(' UNION ', $unions).')');
+
+        $this->addCTE(new Cte($cteName, ['document_id', $alias], $qb));
+
+        return $cteName;
+    }
+
+    public function addCTE(Cte $cte): void
+    {
+        $this->ctesByName[$cte->getName()] = $cte;
+
+        foreach ($cte->getTags() as $tag) {
+            $this->ctesByTag[$tag][$cte->getName()] = $cte;
+        }
+    }
+
+    public function addFromMultiAttributesAndJoinMatches(QueryBuilder $qb, string $attribute): void
+    {
+        $multiDocumentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES_DOCUMENTS);
+        $qb->from(
+            IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES_DOCUMENTS,
+            $multiDocumentsAlias,
+        )
+            ->innerJoin(
+                $multiDocumentsAlias,
+                IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES,
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES),
+                \sprintf(
+                    '%s.attribute=%s AND %s.id = %s.attribute',
+                    $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES),
+                    $this->bindQueryParameter($attribute),
+                    $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES),
+                    $multiDocumentsAlias,
+                ),
+            )
+            ->innerJoin(
+                $multiDocumentsAlias,
+                self::CTE_MATCHES,
+                self::CTE_MATCHES,
+                \sprintf('%s.document_id = %s.document', self::CTE_MATCHES, $multiDocumentsAlias),
+            )
+        ;
+    }
+
+    public function addGeoDistanceCte(string $attribute, float $latitude, float $longitude, Bounds|null $bounds = null): string
+    {
+        $cteName = self::DISTANCE_ALIAS.'_'.$attribute;
+
+        if ($this->hasCTE($cteName)) {
+            return $cteName;
+        }
+
+        $documentAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS);
+        $qb = $this->engine->getConnection()->createQueryBuilder()
+            ->select($documentAlias.'._id AS document_id')
+            ->addSelect(
+                \sprintf(
+                    'loupe_geo_distance(%f, %f, %s, %s) AS distance',
+                    $latitude,
+                    $longitude,
+                    $documentAlias.'.'.$attribute.'_geo_lat',
+                    $documentAlias.'.'.$attribute.'_geo_lng',
+                ),
+            )
+            ->from(IndexInfo::TABLE_NAME_DOCUMENTS, $documentAlias)
+            // Improve performance by drawing a BBOX around our coordinates to reduce the result set considerably before
+            // the actual distance is compared. This can use indexes.
+            // We use floor() and ceil() respectively to ensure we get matches as the BearingSpherical calculation of the
+            // BBOX may not be as precise so when searching for the e.g. 3rd decimal floating point, we might exclude
+            // locations we shouldn't.
+            ->andWhere(implode(' ', $this->filterBuilder->createGeoBoundingBoxWhereStatement($attribute, $bounds)))
+            ->groupBy($documentAlias.'._id')
+        ;
+
+        $this->addCTE(new Cte($cteName, ['document_id', 'distance'], $qb));
+
+        return $cteName;
+    }
+
+    public function addOrderBy(string $sort, string $order, bool $needsMaterialization = false): void
+    {
+        $this->orderByParts[] = [
+            'sort' => $sort,
+            'order' => $order,
+            'needsMaterialization' => $needsMaterialization,
+        ];
+
+        $this->queryBuilder->addOrderBy($sort, $order);
+    }
+
+    public function markFullResultCountRequired(): void
+    {
+        $this->fullResultCountRequired = true;
+    }
+
+    public function markResultConstrainedToMatches(): void
+    {
+        $this->resultConstrainedToMatches = true;
+    }
+
+    public function requireMatchesJoin(): void
+    {
+        if ($this->matchesJoined) {
+            return;
+        }
+
+        $documentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS);
+        $this->queryBuilder->innerJoin(
+            $documentsAlias,
+            self::CTE_MATCHES,
+            self::CTE_MATCHES,
+            \sprintf('%s._id = %s.document_id', $documentsAlias, self::CTE_MATCHES),
+        );
+        $this->matchesJoined = true;
+        $this->resultConstrainedToMatches = true;
+    }
+
+    public function bindQueryParameter(mixed $value, mixed $type = ParameterType::STRING, string|null $parameterName = null): string
+    {
+        if (null !== $parameterName) {
+            $this->queryBuilder->setParameter($parameterName, $value, $type);
+
+            return ':'.$parameterName;
+        }
+
+        $signature = hash('xxh3', serialize([$type, $value]));
+
+        $parameterName = '__loupe_p_'.$signature;
+        $this->queryBuilder->setParameter($parameterName, $value, $type);
+
+        return ':'.$parameterName;
+    }
+
+    /**
+     * @return (T is SearchParameters ? SearchResult : BrowseResult)
+     *
+     * @throws Exception if the schema is not up to date for example
+     */
+    public function fetchResult(): AbstractQueryResult
+    {
+        if ($this->queryParameters instanceof BrowseParameters && $this->canScanDocuments()) {
+            return $this->engine->getConnection()->transactional(fn (): BrowseResult => $this->scanDocuments());
+        }
+
+        $start = (int) floor(microtime(true) * 1000);
+
+        $tokens = $this->getSearchTokens();
+        if ($this->queryParameters instanceof SearchParameters && $this->queryParameters->isFacetOnly()) {
+            return $this->fetchFacetOnlyResult($tokens, $start);
+        }
+
+        $needsHitFormatting = $this->askedForFormattingOrMatchesPosition();
+        $displayTokens = $needsHitFormatting ? $this->getDisplayTokens() : null;
+
+        // Now it's time to add our CTEs
+        $this->selectDocuments();
+        $this->searchDocuments($tokens); // First, add the search term CTEs
+        $this->addPositionsForFormatting($tokens);
+        $this->filterDocuments($tokens); // Then filter the documents (requires the search term CTEs)
+        $this->addFacets();
+        $this->sortDocuments();
+        $this->selectDistance();
+        $this->ensureResultConstrainedToMatches();
+        $this->applyDistinct();
+        $this->selectTotalHits();
+        $this->limitPagination();
+
+        $showAllAttributes = \in_array('*', $this->queryParameters->getAttributesToRetrieve(), true);
+        $attributesToRetrieve = array_flip($this->queryParameters->getAttributesToRetrieve());
+
+        $hits = [];
+
+        foreach ($this->query()->iterateAssociative() as $result) {
+            $document = Util::decodeJson($result['_document']);
+
+            foreach ($result as $k => $v) {
+                if (str_starts_with($k, self::DISTANCE_ALIAS)) {
+                    $document['_geoDistance('.str_replace(self::DISTANCE_ALIAS.'_', '', $k).')'] = (int) round((float) $v);
+                }
+            }
+
+            $hit = $showAllAttributes ? $document : array_intersect_key($document, $attributesToRetrieve);
+
+            if ($this->queryParameters instanceof SearchParameters && $this->queryParameters->showRankingScore()) {
+                $hit['_rankingScore'] = \array_key_exists(self::RELEVANCE_ALIAS, $result) ?
+                    round($result[self::RELEVANCE_ALIAS], 5) : 0.0;
+            }
+
+            if ($needsHitFormatting && null !== $displayTokens) {
+                $this->formatHit($hit, $document, $result, $displayTokens);
+            }
+
+            $hits[] = $hit;
+        }
+
+        $totalHits = $result['totalHits'] ?? 0;
+        $hitsPerPage = $this->queryBuilder->getMaxResults() ?? 0;
+        [$currentPage, $totalPages] = $this->calculatePagination($this->queryBuilder->getFirstResult(), $hitsPerPage, $totalHits);
+        $end = (int) floor(microtime(true) * 1000);
+
+        $resultClass = $this->queryParameters instanceof SearchParameters ? SearchResult::class : BrowseResult::class;
+
+        $resultObject = new $resultClass(
+            $hits,
+            $this->createAnalyzedQuery($tokens),
+            $end - $start,
+            $hitsPerPage,
+            $currentPage,
+            $totalPages,
+            $totalHits,
+        );
+
+        if ($resultObject instanceof SearchResult) {
+            return $this->addFacetsToSearchResult($resultObject, $result ?? []);
+        }
+
+        return $resultObject;
+    }
+
+    public function getCTE(string $name): Cte|null
+    {
+        return $this->ctesByName[$name] ?? null;
+    }
+
+    public function getCTENameForToken(string $prefix, Token $token): string
+    {
+        // For debugging: return $prefix . $token->getId() . '_' .  $token->getTerm();
+        return $prefix.$token->getId();
+    }
+
+    /**
+     * @return array<string, Cte>
+     */
+    public function getCtesByName(): array
+    {
+        return $this->ctesByName;
+    }
+
+    /**
+     * @return array<string, Cte>
+     */
+    public function getCtesByTag(string $tag): array
+    {
+        return $this->ctesByTag[$tag] ?? [];
+    }
+
+    public function getQueryBuilder(): QueryBuilder
+    {
+        return $this->queryBuilder;
+    }
+
+    public function getQueryParameters(): AbstractQueryParameters
+    {
+        return $this->queryParameters;
+    }
+
+    public function getSearchTokens(): TokenCollection
+    {
+        if ($this->searchTokens instanceof TokenCollection) {
+            return $this->searchTokens;
+        }
+
+        if ('' === $this->queryParameters->getQuery()) {
+            return $this->searchTokens = new TokenCollection();
+        }
+
+        return $this->searchTokens = $this->engine->getTokenizer()
+            ->tokenizeQuery(
+                $this->queryParameters->getQuery(),
+                $this->engine->getConfiguration()->getMaxQueryTokens(),
+            )->withoutStopwords($this->engine->getStopWords(), true)
+        ;
+    }
+
+    public function getSorting(): Sorting
+    {
+        return $this->sorting;
+    }
+
+    public function hasCTE(string $cteName): bool
+    {
+        return isset($this->ctesByName[$cteName]);
+    }
+
+    private function fetchFacetOnlyResult(TokenCollection $tokens, int $start): SearchResult
+    {
+        $documentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS);
+        $this->queryBuilder->select($documentsAlias.'._id')->from(IndexInfo::TABLE_NAME_DOCUMENTS, $documentsAlias);
+        $this->searchDocuments($tokens);
+        $this->filterDocuments($tokens);
+        $this->prepareFacetOnlyCount();
+        $this->addFacets();
+        $result = $this->query()->fetchAssociative() ?: [];
+
+        $searchResult = new SearchResult(
+            [],
+            $this->createAnalyzedQuery($tokens),
+            (int) floor(microtime(true) * 1000) - $start,
+            0,
+            0,
+            0,
+            (int) ($result['totalHits'] ?? 0),
+        );
+
+        // Searches without matching hits have always returned empty facet metadata.
+        return 0 === $searchResult->getTotalHits() ? $searchResult : $this->addFacetsToSearchResult($searchResult, $result);
+    }
+
+    private function prepareFacetOnlyCount(): void
+    {
+        $requiresDocumentCount = false;
+
+        // Retain sorters that constrain matches, such as a ranking threshold or multi-value sorting.
+        foreach ($this->sorting->getSorters() as $sorter) {
+            if ($sorter->requiresFullResultCount($this->queryParameters)) {
+                $requiresDocumentCount = true;
+                $sorter->apply($this, $this->engine);
+            }
+        }
+
+        $this->ensureResultConstrainedToMatches();
+        $distinct = $this->queryParameters instanceof SearchParameters ? $this->queryParameters->getDistinct() : null;
+
+        if (null !== $distinct) {
+            if (!\in_array($distinct, $this->engine->getIndexInfo()->getSingleFilterableAttributes(), true)) {
+                throw InvalidSearchParametersException::distinctAttributeMustBeASingleFilterableAttribute();
+            }
+
+            $documentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS);
+            $this->queryBuilder->groupBy($documentsAlias.'.'.$distinct);
+        }
+
+        // Count matches directly when possible, otherwise count groups without loading document JSON or ordering hits.
+        $countQuery = $this->queryBuilder->resetOrderBy();
+        $countFrom = !$requiresDocumentCount && null === $distinct ? self::CTE_MATCHES : '('.$countQuery->getSQL().')';
+        $this->queryBuilder = $this->engine->getConnection()->createQueryBuilder()
+            ->select(\sprintf(
+                '(SELECT MIN(%d, COUNT(*)) FROM %s) AS totalHits',
+                $this->engine->getConfiguration()->getMaxTotalHits(),
+                $countFrom,
+            ))
+            ->setParameters($countQuery->getParameters(), $countQuery->getParameterTypes())
+        ;
+    }
+
+    private function addFromMatchesAndJoinMultiAttributes(QueryBuilder $qb, string $attribute): void
+    {
+        $multiDocumentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES_DOCUMENTS);
+        $multiAttributesAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES);
+
+        // Pin the join order for selective searches so SQLite does not scan every multi-value relation first.
+        $qb->from(
+            \sprintf('%s CROSS JOIN %s', self::CTE_MATCHES, IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES_DOCUMENTS),
+            $multiDocumentsAlias,
+        )
+            ->andWhere(\sprintf('%s.document_id = %s.document', self::CTE_MATCHES, $multiDocumentsAlias))
+            ->innerJoin(
+                $multiDocumentsAlias,
+                IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES,
+                $multiAttributesAlias,
+                \sprintf(
+                    '%s.attribute=%s AND %s.id = %s.attribute',
+                    $multiAttributesAlias,
+                    $this->bindQueryParameter($attribute),
+                    $multiAttributesAlias,
+                    $multiDocumentsAlias,
+                ),
+            )
+        ;
+    }
+
+    private function addFacets(): void
+    {
+        if (!$this->queryParameters instanceof SearchParameters) {
+            return;
+        }
+
+        $searchParameters = $this->queryParameters;
+        $facets = array_intersect($searchParameters->getFacets(), $this->engine->getIndexInfo()->getFilterableAttributes());
+
+        if ([] === $facets) {
+            return;
+        }
+
+        $distinct = $searchParameters->getDistinct();
+
+        foreach ($facets as $facet) {
+            $isMulti = $this->engine->getIndexInfo()->isMultiFilterableAttribute($facet);
+            $isNumeric = $this->engine->getIndexInfo()->isNumericAttribute($facet);
+            $facetAlias = $this->getFacetAlias($facet, $isNumeric);
+            $countQb = $this->createFacetQueryBuilder($facet, $facetAlias, $searchParameters);
+            $minMaxQb = $isNumeric ? clone $countQb : null;
+
+            // Count facet, always needed
+            if (null !== $distinct && $isMulti) {
+                $this->joinDocumentsToMultiFacet($countQb);
+            }
+
+            $countQb->select($facetAlias, $this->getFacetCountExpression($isMulti, $distinct));
+            $countQb->groupBy($facetAlias);
+            $this->addFacetCte(self::FACET_ALIAS_COUNT_PREFIX.$facet, $countQb);
+
+            // MinMax facet for numeric fields
+            if (null !== $minMaxQb) {
+                $minMaxQb->select(\sprintf('MIN(%s)', $facetAlias), \sprintf('MAX(%s)', $facetAlias));
+                $this->addFacetCte(self::FACET_ALIAS_MIN_MAX_PREFIX.$facet, $minMaxQb);
+            }
+        }
+    }
+
+    private function addFacetCte(string $cteName, QueryBuilder $qb): void
+    {
+        $this->addCTE(new Cte($cteName, ['facet_group', 'facet_value'], $qb));
+        $this->queryBuilder->addSelect(\sprintf("(SELECT GROUP_CONCAT(facet_group || ':' || facet_value) FROM %s) AS %s", $cteName, $cteName));
+    }
+
+    private function createFacetQueryBuilder(string $attribute, string $facetAlias, SearchParameters $searchParameters): QueryBuilder
+    {
+        $qb = $this->engine->getConnection()->createQueryBuilder();
+
+        if ($this->engine->getIndexInfo()->isMultiFilterableAttribute($attribute)) {
+            if (null !== $searchParameters->getDistinct() && !$this->getSearchTokens()->empty()) {
+                $this->addFromMatchesAndJoinMultiAttributes($qb, $attribute);
+            } else {
+                $this->addFromMultiAttributesAndJoinMatches($qb, $attribute);
+            }
+        } else {
+            $documentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS);
+            $qb->from(IndexInfo::TABLE_NAME_DOCUMENTS, $documentsAlias);
+            $qb->innerJoin(
+                $documentsAlias,
+                self::CTE_MATCHES,
+                self::CTE_MATCHES,
+                \sprintf('%s.document_id = %s._id', self::CTE_MATCHES, $documentsAlias),
+            );
+        }
+
+        // Make sure null and empty values are not considered (MAX() would probably prefer those)
+        $qb->andWhere($facetAlias.'!= '.$this->bindQueryParameter(LoupeTypes::VALUE_NULL));
+        $qb->andWhere($facetAlias.'!= '.$this->bindQueryParameter(LoupeTypes::VALUE_EMPTY));
+
+        $qb->setMaxResults($searchParameters->getMaxValuesPerFacet()); // Limit the number of facet values
+
+        return $qb;
+    }
+
+    private function getFacetAlias(string $facet, bool $isNumeric): string
+    {
+        if ($this->engine->getIndexInfo()->isMultiFilterableAttribute($facet)) {
+            return \sprintf(
+                '%s.%s',
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES),
+                $isNumeric ? 'numeric_value' : 'string_value',
+            );
+        }
+
+        return \sprintf(
+            '%s.%s',
+            $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS),
+            $facet,
+        );
+    }
+
+    private function getFacetCountExpression(bool $isMulti, string|null $distinct): string
+    {
+        if (null !== $distinct) {
+            return \sprintf(
+                'COUNT(DISTINCT %s.%s)',
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS),
+                $distinct,
+            );
+        }
+
+        if ($isMulti) {
+            return \sprintf('COUNT(%s.document)', $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES_DOCUMENTS));
+        }
+
+        return 'COUNT(*)';
+    }
+
+    private function joinDocumentsToMultiFacet(QueryBuilder $qb): void
+    {
+        $multiDocumentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_MULTI_ATTRIBUTES_DOCUMENTS);
+        $documentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS);
+        $qb->innerJoin(
+            $multiDocumentsAlias,
+            IndexInfo::TABLE_NAME_DOCUMENTS,
+            $documentsAlias,
+            \sprintf('%s._id = %s.document', $documentsAlias, $multiDocumentsAlias),
+        );
+    }
+
+    /**
+     * @param array<mixed> $result
+     */
+    private function addFacetsToSearchResult(SearchResult $searchResult, array $result): SearchResult
+    {
+        $facetDistribution = [];
+        $facetStats = [];
+
+        foreach ($result as $column => $value) {
+            if (str_starts_with((string) $column, self::FACET_ALIAS_COUNT_PREFIX)) {
+                $attribute = (string) preg_replace('/^'.self::FACET_ALIAS_COUNT_PREFIX.'('.Configuration::ATTRIBUTE_NAME_RGXP.')$/', '$1', (string) $column);
+                $isBoolean = LoupeTypes::TYPE_BOOLEAN === $this->engine->getIndexInfo()->getLoupeTypeForAttribute($attribute);
+
+                // No matches
+                if (null === $value) {
+                    $facetDistribution[$attribute] = [];
+                    continue;
+                }
+
+                $items = explode(',', $value);
+
+                foreach ($items as $item) {
+                    $pos = strrpos($item, ':');
+
+                    if (false === $pos) {
+                        continue;
+                    }
+
+                    $group = substr($item, 0, $pos);
+                    $value = substr($item, $pos + 1);
+
+                    if ($isBoolean) {
+                        $group = '1.0' === $group ? 'true' : 'false';
+                    }
+
+                    if (\in_array($group, [LoupeTypes::VALUE_EMPTY, LoupeTypes::VALUE_NULL], true)) {
+                        continue;
+                    }
+
+                    $facetDistribution[$attribute][$group] = (int) $value;
+                }
+            }
+
+            if (str_starts_with((string) $column, self::FACET_ALIAS_MIN_MAX_PREFIX)) {
+                $attribute = (string) preg_replace('/^'.self::FACET_ALIAS_MIN_MAX_PREFIX.'('.Configuration::ATTRIBUTE_NAME_RGXP.')$/', '$1', (string) $column);
+
+                // No matches
+                if (null === $value) {
+                    $facetStats[$attribute] = [];
+                    continue;
+                }
+
+                [$min, $max] = explode(':', (string) $value);
+                $facetStats[$attribute]['min'] = (float) $min;
+                $facetStats[$attribute]['max'] = (float) $max;
+            }
+        }
+
+        if ([] !== $facetDistribution) {
+            $searchResult = $searchResult->withFacetDistribution($facetDistribution);
+        }
+
+        if ([] !== $facetStats) {
+            $searchResult = $searchResult->withFacetStats($facetStats);
+        }
+
+        return $searchResult;
+    }
+
+    private function addPositionsForFormatting(TokenCollection $tokenCollection): void
+    {
+        if (!$this->askedForFormattingOrMatchesPosition()) {
+            return;
+        }
+
+        $this->requireMatchesJoin();
+
+        foreach ($tokenCollection->all() as $token) {
+            $matchesCteName = $this->getCTENameForToken(self::CTE_TERM_DOCUMENT_MATCHES_PREFIX, $token);
+            if (!$this->hasCTE($matchesCteName)) {
+                continue;
+            }
+
+            $positionsCteName = $this->getCTENameForToken(self::CTE_TERM_DOCUMENT_POSITIONS_PREFIX, $token);
+            $positionsQueryBuilder = $this->engine->getConnection()->createQueryBuilder();
+            $positionsQueryBuilder
+                ->select('document')
+                ->addSelect("GROUP_CONCAT(attribute || ':' || position || ':' || start || ':' || end) AS positions")
+                ->from($matchesCteName)
+                ->groupBy('document')
+            ;
+            // Do not aggregate positions for documents excluded by the user filters.
+            if ('' !== $this->queryParameters->getFilter()) {
+                $positionsQueryBuilder->andWhere('document IN (SELECT document_id FROM '.self::CTE_MATCHES.')');
+            }
+            $this->addCTE(new Cte($positionsCteName, ['document_id', 'positions'], $positionsQueryBuilder));
+
+            $this->queryBuilder
+                ->addSelect($positionsCteName.'.positions AS '.self::MATCH_POSITION_INFO_PREFIX.$token->getId())
+                ->leftJoin(
+                    self::CTE_MATCHES,
+                    $positionsCteName,
+                    $positionsCteName,
+                    \sprintf('%s.document_id = %s.document_id', $positionsCteName, self::CTE_MATCHES),
+                )
+            ;
+        }
+    }
+
+    private function addTermDocumentMatchesCTE(Token $token, Token|null $previousPhraseToken): void
+    {
+        // No term matches CTE -> no term document matches CTE
+        $termMatchesCTE = $this->getCTENameForToken(self::CTE_TERM_MATCHES_PREFIX, $token);
+
+        if (!$this->hasCTE($termMatchesCTE)) {
+            return;
+        }
+
+        $termsDocumentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_TERMS_DOCUMENTS);
+
+        // Skip start/end columns unless formatting/highlighting/positions are requested
+        $needsPositions = $this->askedForFormattingOrMatchesPosition();
+
+        $cteSelectQb = $this->engine->getConnection()->createQueryBuilder();
+        $cteSelectQb->addSelect($termsDocumentsAlias.'.document');
+        $cteSelectQb->addSelect($termsDocumentsAlias.'.attribute');
+        $cteSelectQb->addSelect($termsDocumentsAlias.'.position');
+        if ($needsPositions) {
+            $cteSelectQb->addSelect($termsDocumentsAlias.'.start');
+            $cteSelectQb->addSelect($termsDocumentsAlias.'.end');
+        }
+        $needsFoldingState = $this->needsFoldingState();
+        $needsTypoCount = $this->needsTypoCount();
+        $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_TERMS);
+
+        if ($needsTypoCount) {
+            $cteSelectQb->addSelect(\sprintf('%s.typos AS typos', $termMatchesCTE));
+        } else {
+            $cteSelectQb->addSelect('0 AS typos');
+        }
+
+        if ($needsFoldingState) {
+            $cteSelectQb->addSelect(\sprintf(
+                'CASE WHEN %s.is_exact_term = 1 AND %s.folded = %s THEN 1 ELSE 0 END AS exact_match',
+                $termMatchesCTE,
+                $termsDocumentsAlias,
+                $token->wasFolded() ? '1' : '0',
+            ));
+        }
+
+        $isPhraseContinuation = $token->isPartOfPhrase()
+            && !$token->startsPhrase()
+            && null !== $previousPhraseToken;
+        if ($isPhraseContinuation) {
+            // Continuing inside "a phrase": drive query from small materialized previous token's match CTE
+            // Use CROSS JOIN instead of INNER JOIN to pin join order and avoid full scans for common words like "his"
+            $previousPhraseCte = $this->getCTENameForToken(self::CTE_TERM_DOCUMENT_MATCHES_PREFIX, $previousPhraseToken);
+            $previousPhraseAlias = $previousPhraseCte.'_prev';
+            $cteSelectQb->from(\sprintf(
+                '%s %s'
+                .' CROSS JOIN %s'
+                .' CROSS JOIN %s %s INDEXED BY '.$this->engine->getIndexInfo()->getTermsDocumentsSearchIndexName()
+                .' ON %s.id = %s.term'
+                .' AND %s.document = %s.document'
+                .' AND %s.attribute = %s.attribute'
+                .' AND %s.position = %s.position + 1',
+                $previousPhraseCte,
+                $previousPhraseAlias,
+                $termMatchesCTE,
+                IndexInfo::TABLE_NAME_TERMS_DOCUMENTS,
+                $termsDocumentsAlias,
+                $termMatchesCTE,
+                $termsDocumentsAlias,
+                $termsDocumentsAlias,
+                $previousPhraseAlias,
+                $termsDocumentsAlias,
+                $previousPhraseAlias,
+                $termsDocumentsAlias,
+                $previousPhraseAlias,
+            ));
+        } else {
+            $this->addTermDocumentsJoin($cteSelectQb, $termMatchesCTE, $termsDocumentsAlias);
+        }
+
+        // Restrict to shared candidate documents only for real multi-token queries.
+        // For single-token queries this check is redundant and adds avoidable overhead.
+        // For phrase-continuation tokens, this filter is also redudandant and solved by the cross join above
+        if ($this->getSearchTokens()->count() > 1 && !$isPhraseContinuation) {
+            $hasCandidateDocuments = $this->ensureSharedCandidateDocumentsCTE();
+            if (!$hasCandidateDocuments) {
+                return;
+            }
+
+            $cteSelectQb->where(\sprintf(
+                '%s.document IN (SELECT document FROM %s)',
+                $termsDocumentsAlias,
+                self::CTE_CANDIDATE_DOCUMENTS,
+            ));
+        }
+
+        if (['*'] !== $this->queryParameters->getAttributesToSearchOn()) {
+            $cteSelectQb->andWhere(\sprintf(
+                $termsDocumentsAlias.'.attribute IN (%s)',
+                $this->bindQueryParameter($this->queryParameters->getAttributesToSearchOn(), ArrayParameterType::STRING),
+            ));
+        }
+
+        $cteName = $this->getCTENameForToken(self::CTE_TERM_DOCUMENT_MATCHES_PREFIX, $token);
+
+        // loupe_levensthein calls prevent SQLite from materializing phrase-position subqueries
+        // so we force materialization to avoid re-evaluation per row and use temp b-trees instead
+        $materialized = $token->isPartOfPhrase() ? true : null;
+
+        $columns = ['document', 'attribute', 'position'];
+        if ($needsPositions) {
+            $columns[] = 'start';
+            $columns[] = 'end';
+        }
+        $columns[] = 'typos';
+        if ($needsFoldingState) {
+            $columns[] = 'exact_match';
+        }
+
+        $this->addCTE(new Cte(
+            $cteName,
+            $columns,
+            $cteSelectQb,
+            [],
+            $materialized,
+        ));
+    }
+
+    private function addTermDocumentsJoin(QueryBuilder $queryBuilder, string $termMatchesCTE, string $termsDocumentsAlias): void
+    {
+        // Pin the join order so SQLite never scans every term occurrence instead of starting from the matched terms.
+        $queryBuilder->from(\sprintf(
+            '%s CROSS JOIN %s %s INDEXED BY '.$this->engine->getIndexInfo()->getTermsDocumentsSearchIndexName().' ON %s.id = %s.term',
+            $termMatchesCTE,
+            IndexInfo::TABLE_NAME_TERMS_DOCUMENTS,
+            $termsDocumentsAlias,
+            $termMatchesCTE,
+            $termsDocumentsAlias,
+        ));
+    }
+
+    private function addTermDocumentMatchesCTEs(TokenCollection $tokenCollection): void
+    {
+        if ($tokenCollection->empty()) {
+            return;
+        }
+
+        $previousPhraseToken = null;
+
+        foreach ($tokenCollection->all() as $token) {
+            $this->addTermDocumentMatchesCTE($token, $previousPhraseToken);
+            $previousPhraseToken = $token->isPartOfPhrase() ? $token : null;
+        }
+    }
+
+    private function addTermDocumentsCTE(Token $token): void
+    {
+        // No term matches CTE -> no term documents CTE
+        $termMatchesCTE = $this->getCTENameForToken(self::CTE_TERM_MATCHES_PREFIX, $token);
+
+        if (!$this->hasCTE($termMatchesCTE)) {
+            return;
+        }
+
+        $termsDocumentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_TERMS_DOCUMENTS);
+
+        $cteSelectQb = $this->engine->getConnection()->createQueryBuilder();
+        $cteSelectQb->select($termsDocumentsAlias.'.document')->distinct();
+
+        $cteSelectQb->from(IndexInfo::TABLE_NAME_TERMS_DOCUMENTS, $termsDocumentsAlias);
+        $cteSelectQb->where(\sprintf('%s.term IN (SELECT id FROM %s)', $termsDocumentsAlias, $termMatchesCTE));
+
+        if (['*'] !== $this->queryParameters->getAttributesToSearchOn()) {
+            $cteSelectQb->andWhere(\sprintf(
+                $termsDocumentsAlias.'.attribute IN (%s)',
+                $this->bindQueryParameter($this->queryParameters->getAttributesToSearchOn(), ArrayParameterType::STRING),
+            ));
+        }
+
+        // Only apply max total hits to search queries
+        if ($this->queryParameters instanceof SearchParameters) {
+            $cteSelectQb->setMaxResults($this->engine->getConfiguration()->getMaxTotalHits());
+        }
+
+        $this->addCTE(new Cte(
+            $this->getCTENameForToken(self::CTE_TERM_DOCUMENTS_PREFIX, $token),
+            ['document'],
+            $cteSelectQb,
+        ));
+    }
+
+    private function addTermDocumentsCTEs(TokenCollection $tokenCollection): void
+    {
+        if ($tokenCollection->empty()) {
+            return;
+        }
+
+        foreach ($tokenCollection->all() as $token) {
+            $this->addTermDocumentsCTE($token);
+        }
+    }
+
+    private function addTermMatchesCTE(Token $token, bool $isLastToken): void
+    {
+        $selects = [];
+        $selects[] = $this->createTermMatchesSelect($token->getTerm(), false, $token->isPartOfPhrase(), $isLastToken);
+
+        // Consider variants only if not part of a phrase search
+        if (!$token->isPartOfPhrase()) {
+            foreach ($token->getVariants() as $term) {
+                $selects[] = $this->createTermMatchesSelect($term, false, false, $isLastToken);
+            }
+        }
+
+        // Prefix search
+        if (
+            $isLastToken
+            && !$token->isPartOfPhrase()
+            && $token->getLength() >= $this->engine->getConfiguration()->getMinTokenLengthForPrefixSearch()
+        ) {
+            // With typo tolerance on prefix search requires searching the prefix tables as well
+            if ($this->engine->getConfiguration()->getTypoTolerance()->isEnabledForPrefixSearch()) {
+                $selects[] = $this->createTermMatchesSelect($token->getTerm(), true, false, $isLastToken);
+            } else {
+                $selects[] = $this->createTermMatchesSelect($token->getTerm(), false, false, $isLastToken, true);
+            }
+        }
+
+        $this->addCTE($this->createTermMatchesCte($token, $selects));
+    }
+
+    /**
+     * @param list<string> $selects
+     */
+    private function createTermMatchesCte(Token $token, array $selects): Cte
+    {
+        // Precompute per-term typos + is_exact_term so _cte_term_document_matches_N can join this tiny CTE instead of the big `terms` table
+        $queryTermParam = $this->bindQueryParameter($token->getTerm());
+        $firstCharDouble = $this->engine->getConfiguration()->getTypoTolerance()->firstCharTypoCountsDouble() ? 'true' : 'false';
+        $unionSql = implode(' UNION ALL ', $selects);
+        $mayContainDuplicates = \count($selects) > 1;
+
+        $typos = \sprintf('loupe_levensthein(inner_terms.term, %s, %s)', $queryTermParam, $firstCharDouble);
+        $isExactTerm = \sprintf('CASE WHEN inner_terms.term = %s THEN 1 ELSE 0 END', $queryTermParam);
+        if ($mayContainDuplicates) {
+            $typos = 'MIN('.$typos.')';
+            $isExactTerm = 'MAX('.$isExactTerm.')';
+        }
+
+        $cteSelectQb = $this->engine->getConnection()->createQueryBuilder();
+        $cteSelectQb->select('inner_terms.id AS id');
+        $cteSelectQb->addSelect($typos.' AS typos');
+        $cteSelectQb->addSelect($isExactTerm.' AS is_exact_term');
+        $cteSelectQb->from('('.$unionSql.')', 'inner_terms');
+        if ($mayContainDuplicates) {
+            $cteSelectQb->groupBy('inner_terms.id');
+        }
+
+        return new Cte(
+            $this->getCTENameForToken(self::CTE_TERM_MATCHES_PREFIX, $token),
+            ['id', 'typos', 'is_exact_term'],
+            $cteSelectQb,
+            [],
+            // Aggregation already materializes multiple inputs. Keep the same evaluation boundary for one unique input.
+            $mayContainDuplicates ? null : true,
+        );
+    }
+
+    private function addTermMatchesCTEs(TokenCollection $tokenCollection): void
+    {
+        if ($tokenCollection->empty()) {
+            return;
+        }
+
+        foreach ($tokenCollection->all() as $token) {
+            $this->addTermMatchesCTE($token, $token === $tokenCollection->last());
+        }
+    }
+
+    private function applyDistinct(): void
+    {
+        if (!$this->queryParameters instanceof SearchParameters) {
+            return;
+        }
+
+        $distinct = $this->queryParameters->getDistinct();
+
+        if (null === $distinct) {
+            return;
+        }
+
+        $this->markFullResultCountRequired();
+
+        if (!\in_array($distinct, $this->engine->getIndexInfo()->getSingleFilterableAttributes(), true)) {
+            throw InvalidSearchParametersException::distinctAttributeMustBeASingleFilterableAttribute();
+        }
+
+        $documentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS);
+        $this->queryBuilder->addSelect($documentsAlias.'.'.$distinct.' AS '.self::DISTINCT_VALUE_ALIAS);
+
+        // We handle DISTINCT by ranking rows within each distinct value and then keeping the top one.
+        // If an ORDER BY part is computed in this query, we first expose it as a select alias so the outer
+        // ranking query can still sort by it.
+        $orderByParts = [];
+
+        foreach ($this->orderByParts as $index => $orderByPart) {
+            if ($orderByPart['needsMaterialization']) {
+                $alias = '_distinct_order_'.$index;
+                $this->queryBuilder->addSelect($orderByPart['sort'].' AS '.$alias);
+
+                $orderByParts[] = [
+                    'sort' => $alias,
+                    'order' => $orderByPart['order'],
+                ];
+
+                continue;
+            }
+
+            $orderByParts[] = [
+                'sort' => $orderByPart['sort'],
+                'order' => $orderByPart['order'],
+            ];
+        }
+
+        $orderByParts[] = [
+            'sort' => self::DOCUMENT_ID_ALIAS,
+            'order' => 'ASC',
+        ];
+
+        // Now wrap the current query and assign a row number per distinct value using the normalized ORDER BY list.
+        // We add the document id at the end so ties still resolve in a predictable way.
+        $rankedQueryBuilder = $this->engine->getConnection()->createQueryBuilder();
+        $rankedQueryBuilder
+            ->select('*')
+            ->addSelect(\sprintf(
+                'ROW_NUMBER() OVER (PARTITION BY %s ORDER BY %s) AS %s',
+                self::DISTINCT_VALUE_ALIAS,
+                implode(', ', array_map(static fn (array $orderByPart): string => $orderByPart['sort'].' '.$orderByPart['order'], $orderByParts)),
+                self::DISTINCT_RANK_ALIAS,
+            ))
+            ->from('('.$this->queryBuilder->getSQL().')')
+            ->setParameters($this->queryBuilder->getParameters(), $this->queryBuilder->getParameterTypes())
+        ;
+
+        // Replace the original builder with the ranked subquery and keep only the first row from each distinct group.
+        // After that we re-apply the normalized ORDER BY parts to the final query builder below.
+        $this->queryBuilder = $this->engine->getConnection()->createQueryBuilder();
+        $this->queryBuilder
+            ->select('*')
+            ->from('('.$rankedQueryBuilder->getSQL().')')
+            ->where(self::DISTINCT_RANK_ALIAS.' = 1')
+            ->setParameters($rankedQueryBuilder->getParameters(), $rankedQueryBuilder->getParameterTypes())
+        ;
+
+        $this->orderByParts = [];
+
+        foreach ($orderByParts as $orderByPart) {
+            $this->addOrderBy($orderByPart['sort'], $orderByPart['order']);
+        }
+    }
+
+    private function askedForFormattingOrMatchesPosition(): bool
+    {
+        if (!$this->queryParameters instanceof SearchParameters || $this->queryParameters->isFacetOnly()) {
+            return false;
+        }
+        if ([] !== $this->queryParameters->getAttributesToHighlight()) {
+            return true;
+        }
+
+        if ([] !== $this->queryParameters->getAttributesToCrop()) {
+            return true;
+        }
+
+        return $this->queryParameters->showMatchesPosition();
+    }
+
+    private function buildTokenFrom(TokenCollection $tokenCollection): string
+    {
+        if ($tokenCollection->empty()) {
+            return '';
+        }
+
+        $qb = $this->engine->getConnection()->createQueryBuilder()
+            ->select(
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS).'._id AS document_id',
+            )
+            ->from(
+                IndexInfo::TABLE_NAME_DOCUMENTS,
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS),
+            )
+        ;
+
+        $positiveConditions = [];
+        $negativeConditions = [];
+
+        foreach ($tokenCollection->phraseGroups() as $tokenOrPhrase) {
+            $statements = [];
+
+            foreach ($tokenOrPhrase->all() as $token) {
+                $statements[] = $this->createTermDocumentMatchesCTECondition($token);
+            }
+
+            // The final positional CTE of a phrase already proves that all preceding phrase tokens matched in order.
+            // Using only that CTE for negation lets every token exist independently as long as the exact phrase does not.
+            if ($tokenOrPhrase instanceof Phrase && $tokenOrPhrase->isNegated()) {
+                $statements = \array_slice($statements, -1);
+            }
+
+            if (\count(array_filter($statements))) {
+                if ($tokenOrPhrase->isNegated()) {
+                    $negativeConditions[] = $statements;
+                } else {
+                    $positiveConditions[] = $statements;
+                }
+            }
+        }
+
+        $strategy = $this->queryParameters instanceof SearchParameters
+            ? MatchingStrategy::from($this->queryParameters->getMatchingStrategy())
+            : MatchingStrategy::Any;
+
+        $positiveOperator = match ($strategy) {
+            MatchingStrategy::All => ' AND ',
+            MatchingStrategy::Any => ' OR ',
+        };
+
+        // Fast path: "any" strategy, only positive single-token groups: use _cte_candidate_documents directly
+        if (
+            MatchingStrategy::Any === $strategy
+            && [] === $negativeConditions
+            && [] !== $positiveConditions
+            && $this->hasCTE(self::CTE_CANDIDATE_DOCUMENTS)
+            && [] === array_filter($positiveConditions, static fn ($s) => 1 !== \count($s))
+        ) {
+            return \sprintf('SELECT document AS document_id FROM %s', self::CTE_CANDIDATE_DOCUMENTS);
+        }
+
+        $where = implode($positiveOperator, array_map(
+            static fn ($statements) => '('.implode(' AND ', $statements).')',
+            $positiveConditions,
+        ));
+
+        if ('' !== $where) {
+            $qb->andWhere('('.$where.')');
+        }
+
+        $whereNot = implode(' AND ', array_map(
+            static fn ($statements) => '('.implode(' AND ', $statements).')',
+            $negativeConditions,
+        ));
+
+        if ('' !== $whereNot) {
+            $qb->andWhere('('.$whereNot.')');
+        }
+
+        return $qb->getSQL();
+    }
+
+    /**
+     * @return array{int, int}
+     */
+    private function calculatePagination(int $offset, int $limit, int $totalHits): array
+    {
+        if (0 === $limit) {
+            return [0, 0];
+        }
+
+        return [(int) floor($offset / $limit) + 1, (int) ceil($totalHits / $limit)];
+    }
+
+    /**
+     * Check if the documents table can be read directly, which is much faster than the CTE pipeline without a query or filter.
+     */
+    private function canScanDocuments(): bool
+    {
+        if ('' !== $this->queryParameters->getQuery() || '' !== $this->queryParameters->getFilter()) {
+            return false;
+        }
+
+        [$offset, $limit] = $this->resolveOffsetAndLimit();
+
+        return $offset >= 0 && $limit >= 0;
+    }
+
+    private function createAnalyzedQuery(TokenCollection $tokens): string
+    {
+        $lastToken = $tokens->last();
+
+        if (null === $lastToken) {
+            return $this->queryParameters->getQuery();
+        }
+
+        $query = mb_substr($this->queryParameters->getQuery(), 0, $lastToken->getStartPosition() + $lastToken->getLength());
+
+        if ($lastToken->isPartOfPhrase()) {
+            $query .= '"';
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param array<int> $states
+     */
+    private function createStatesMatchWhere(array $states, string $table, string $term, int $levenshteinDistance, string $termColumnName): string
+    {
+        $where = [];
+        /*
+         * WHERE
+         *     state IN (:states)
+         *     AND
+         *     LENGTH(term) >= <term> - <lev-distance>
+         *     AND
+         *     LENGTH(term) <= <term> + <lev-distance>
+         *     AND
+         *     loupe_max_levenshtein(<term>, $termColumnName, <distance>)
+         */
+        $where[] = \sprintf(
+            '%s.state IN (%s)',
+            $this->engine->getIndexInfo()
+                ->getAliasForTable($table),
+            implode(',', $states),
+        );
+        $where[] = 'AND';
+        $where[] = \sprintf(
+            '%s.length >= %d',
+            $this->engine->getIndexInfo()
+                ->getAliasForTable($table),
+            mb_strlen($term, 'UTF-8') - 1,
+        );
+        $where[] = 'AND';
+        $where[] = \sprintf(
+            '%s.length <= %d',
+            $this->engine->getIndexInfo()
+                ->getAliasForTable($table),
+            mb_strlen($term, 'UTF-8') + 1,
+        );
+        $where[] = 'AND';
+        $where[] = \sprintf(
+            'loupe_max_levenshtein(%s, %s.%s, %d, %s)',
+            $this->bindQueryParameter($term),
+            $this->engine->getIndexInfo()->getAliasForTable($table),
+            $termColumnName,
+            $levenshteinDistance,
+            $this->engine->getConfiguration()->getTypoTolerance()->firstCharTypoCountsDouble() ? 'true' : 'false',
+        );
+
+        return implode(' ', $where);
+    }
+
+    private function createTermDocumentMatchesCTECondition(Token $token): string|null
+    {
+        $usePositionAwareMatches = $token->isPartOfPhrase();
+        $cteName = $this->getCTENameForToken(
+            $usePositionAwareMatches ? self::CTE_TERM_DOCUMENT_MATCHES_PREFIX : self::CTE_TERM_DOCUMENTS_PREFIX,
+            $token,
+        );
+
+        if (!$this->hasCTE($cteName)) {
+            return null;
+        }
+
+        $subSelect = $usePositionAwareMatches ? 'SELECT DISTINCT document FROM ' : 'SELECT document FROM ';
+
+        return \sprintf(
+            '%s._id %s (%s%s)',
+            $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS),
+            $token->isNegated() ? 'NOT IN' : 'IN',
+            $subSelect,
+            $cteName,
+        );
+    }
+
+    private function createTermMatchesSelect(string $term, bool $prefix, bool $disableTypoTolerance, bool $isLastToken, bool $prefixLikeOnly = false): string
+    {
+        $termsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_TERMS);
+        $qb = $this->engine->getConnection()->createQueryBuilder();
+        $qb->select($termsAlias.'.id', $termsAlias.'.term');
+        $qb->from(IndexInfo::TABLE_NAME_TERMS, $termsAlias);
+
+        if ($prefixLikeOnly) {
+            $qb->where(\sprintf(
+                '%s.term GLOB %s',
+                $termsAlias,
+                $this->bindQueryParameter($term.'*'),
+            ));
+        } else {
+            $qb->where($this->createWherePartForTerm($term, $prefix, $disableTypoTolerance, $isLastToken));
+        }
+
+        return $qb->getSQL();
+    }
+
+    private function createWherePartForTerm(string $term, bool $prefix, bool $disableTypoTolerance, bool $isLastToken): string
+    {
+        $where = [];
+        $termParameter = $this->bindQueryParameter($term);
+
+        if ($disableTypoTolerance) {
+            $levenshteinDistance = 0;
+        } else {
+            $levenshteinDistance = $this->engine->getConfiguration()
+                ->getTypoTolerance()
+                ->getLevenshteinDistanceForTerm($term)
+            ;
+        }
+
+        /*
+         * Without prefix:
+         *
+         *     term = '<term>'
+         *
+         * With prefix:
+         *
+         *     (term = '<term>' OR term GLOB '<term>*')
+         */
+        if ($prefix) {
+            $where[] = '(';
+        }
+
+        $where[] = \sprintf(
+            '%s.term = %s',
+            $this->engine->getIndexInfo()
+                ->getAliasForTable(IndexInfo::TABLE_NAME_TERMS),
+            $termParameter,
+        );
+
+        if ($prefix) {
+            $where[] = 'OR';
+            $where[] = \sprintf(
+                '%s.term GLOB %s',
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_TERMS),
+                $this->bindQueryParameter($term.'*'),
+            );
+            $where[] = ')';
+        }
+
+        // Typo tolerance not enabled enabled
+        if (0 === $levenshteinDistance) {
+            return implode(' ', $where);
+        }
+
+        $states = $this->engine->getStateSetIndex()->findMatchingStates(
+            $term,
+            $levenshteinDistance,
+            1,
+            $isLastToken ? self::MAX_PREFIX_CHARS_TO_TRIM_FOR_LAST_TOKEN_CACHE_REUSE : 0,
+        );
+
+        // No result possible, we add AND 1=0 to ensure no results
+        if ([] === $states) {
+            $where[] = 'AND 1=0';
+
+            return implode(' ', $where);
+        }
+
+        $where[] = 'OR';
+
+        /*
+         * Without prefix:
+         *
+         *     <states-match-terms-table-query>
+         *
+         * With prefix:
+         *
+         *     (<states-match-terms-table-query> OR <states-match-prefixes-table-query>)
+         */
+        if ($prefix) {
+            $where[] = '(';
+        }
+
+        $where[] = $this->createStatesMatchWhere(
+            $states,
+            IndexInfo::TABLE_NAME_TERMS,
+            $term,
+            $levenshteinDistance,
+            'term',
+        );
+
+        if ($prefix) {
+            $where[] = 'OR';
+            $where[] = \sprintf(
+                '%s.id IN (SELECT %s.term FROM %s %s WHERE %s.prefix IN (SELECT %s.id FROM %s %s WHERE %s))',
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_TERMS),
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_PREFIXES_TERMS),
+                IndexInfo::TABLE_NAME_PREFIXES_TERMS,
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_PREFIXES_TERMS),
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_PREFIXES_TERMS),
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_PREFIXES),
+                IndexInfo::TABLE_NAME_PREFIXES,
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_PREFIXES),
+                $this->createStatesMatchWhere(
+                    $states,
+                    IndexInfo::TABLE_NAME_PREFIXES,
+                    $term,
+                    $levenshteinDistance,
+                    'prefix',
+                ),
+            );
+
+            $where[] = ')';
+        }
+
+        return implode(' ', $where);
+    }
+
+    /**
+     * Lazily build the shared "_cte_candidate_documents" CTE: set of documents matching ANY query term
+     * (the UNION of every token's _cte_term_documents_* list), and reports whether such a set exists.
+     * Done so that SQLite can satisfy each token with a single index lookup by computing the union once.
+     *
+     * @return bool true when a candidate set exists, false when no token has a term-documents CTE
+     */
+    private function ensureSharedCandidateDocumentsCTE(): bool
+    {
+        if ($this->hasCTE(self::CTE_CANDIDATE_DOCUMENTS)) {
+            return true;
+        }
+
+        // Collect each token's document list (their UNION is the "matches any term" candidate set)
+        $unionParts = [];
+
+        foreach ($this->getSearchTokens()->all() as $otherToken) {
+            $cteName = $this->getCTENameForToken(self::CTE_TERM_DOCUMENTS_PREFIX, $otherToken);
+            if (!$this->hasCTE($cteName)) {
+                continue;
+            }
+            $unionParts[] = 'SELECT document FROM '.$cteName;
+        }
+
+        if ([] === $unionParts) {
+            return false;
+        }
+
+        $cteSelectQb = $this->engine->getConnection()->createQueryBuilder();
+        $cteSelectQb->select('document');
+        $cteSelectQb->from('('.implode(' UNION ALL ', $unionParts).') candidates');
+
+        $this->addCTE(new Cte(self::CTE_CANDIDATE_DOCUMENTS, ['document'], $cteSelectQb));
+
+        return true;
+    }
+
+    /**
+     * @param array<string> $attributesToRetrieve
+     *
+     * @return array<array<string, mixed>>
+     */
+    private function fetchHits(QueryBuilder $queryBuilder, string $documentsAlias, array $attributesToRetrieve): array
+    {
+        $primaryKey = $this->engine->getConfiguration()->getPrimaryKey();
+        $primaryKeyExpression = [$primaryKey] === $attributesToRetrieve
+            ? $this->primaryKeyExpression($documentsAlias, $primaryKey)
+            : null;
+
+        if (null !== $primaryKeyExpression) {
+            $ids = $queryBuilder->select($primaryKeyExpression)->fetchFirstColumn();
+
+            return array_map(static fn (mixed $id): array => [$primaryKey => $id], $ids);
+        }
+
+        $documents = $queryBuilder->select($documentsAlias.'._document')->executeQuery()->iterateColumn();
+        $hits = [];
+
+        if (\in_array('*', $attributesToRetrieve, true)) {
+            foreach ($documents as $document) {
+                $hits[] = Util::decodeJson($document);
+            }
+
+            return $hits;
+        }
+
+        $keep = array_flip($attributesToRetrieve);
+
+        foreach ($documents as $document) {
+            $hits[] = array_intersect_key(Util::decodeJson($document), $keep);
+        }
+
+        return $hits;
+    }
+
+    private function filterDocuments(TokenCollection $tokenCollection): void
+    {
+        $froms = [];
+        $qbMatches = $this->engine->getConnection()->createQueryBuilder();
+        $qbMatches->select('document_id');
+
+        // User filters
+        $froms[] = $this->filterBuilder->buildFrom();
+
+        // User query
+        $froms[] = $this->buildTokenFrom($tokenCollection);
+
+        // Drop empty froms
+        $froms = array_values(array_filter($froms));
+
+        // Not filtered by either filters or user query, fetch everything
+        if ([] === $froms) {
+            $froms[] = \sprintf(
+                '(SELECT %s._id AS document_id FROM %s %s)',
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS),
+                IndexInfo::TABLE_NAME_DOCUMENTS,
+                $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS),
+            );
+        }
+
+        if (1 === \count($froms)) {
+            $qbMatches->from('('.$froms[0].')');
+        } else {
+            $qbMatches->from('('.implode(' INTERSECT ', $froms).')');
+        }
+
+        if (!$tokenCollection->empty()) {
+            // Keep DISTINCT here for SQLite performance. Even though the upstream queries already produce one row per
+            // document in practice, making that uniqueness explicit helps SQLite choose a better plan for the final
+            // matches CTE. Removing DISTINCT keeps the results correct, but performs slower.
+            $qbMatches->distinct();
+        }
+
+        $this->addCTE(new Cte(self::CTE_MATCHES, ['document_id'], $qbMatches));
+    }
+
+    /**
+     * @param array<string, list<array{position: int, start: int, end: int}>>|null $matchPositionInfo
+     */
+    private function formatAttributeForHit(string $attribute, string $value, TokenCollection $queryTerms, FormatterOptions $attributeOptions, array|null $matchPositionInfo = null): FormatterResult
+    {
+        if (null === $matchPositionInfo) {
+            return $this->engine->getFormatter()->format($value, $queryTerms, $attributeOptions);
+        }
+
+        if (!isset($matchPositionInfo[$attribute])) {
+            return new FormatterResult($value, new TokenCollection());
+        }
+
+        // Use the stored original start positions to identify matching tokens.
+        // Matching by original character position (rather than word-index position) is necessary because
+        // normalization (e.g. ß → ss) can shift character positions between the indexed form and the display text.
+        // Variants are unnecessary because the index has already identified the matching positions.
+        $startPositions = array_column($matchPositionInfo[$attribute], 'start');
+        $matches = new TokenCollection();
+
+        foreach ($this->engine->getTokenizer()->tokenize($value, false)->all() as $token) {
+            if (\in_array($token->getOriginalStartPosition(), $startPositions, true)) {
+                $matches->add($token);
+            }
+        }
+
+        return $this->engine->getFormatter()->format($value, $queryTerms, $attributeOptions, $matches);
+    }
+
+    /**
+     * @param array<mixed>         $hit
+     * @param array<string, mixed> $document
+     * @param array<mixed>         $queryResult
+     */
+    private function formatHit(array &$hit, array $document, array $queryResult, TokenCollection $queryTerms): void
+    {
+        if (!$this->queryParameters instanceof SearchParameters) {
+            return;
+        }
+
+        $searchableAttributes = ['*'] === $this->engine->getConfiguration()->getSearchableAttributes()
+            ? array_keys($document)
+            : $this->engine->getConfiguration()->getSearchableAttributes();
+        $attributesToCrop = ['*'] === $this->queryParameters->getAttributesToCrop()
+            ? array_keys($hit)
+            : array_keys($this->queryParameters->getAttributesToCrop());
+        $attributesToHighlight = ['*'] === $this->queryParameters->getAttributesToHighlight()
+            ? $searchableAttributes
+            : $this->queryParameters->getAttributesToHighlight();
+
+        $options = (new FormatterOptions())
+            ->withCropLength($this->queryParameters->getCropLength())
+            ->withCropMarker($this->queryParameters->getCropMarker())
+            ->withCropMaxFragments($this->queryParameters->getCropMaxFragments())
+            ->withHighlightStartTag($this->queryParameters->getHighlightStartTag())
+            ->withHighlightEndTag($this->queryParameters->getHighlightEndTag())
+        ;
+
+        if ($this->queryParameters->shouldPrioritizeMatches()) {
+            $options = $options->withEnableMatchPrioritization();
+        }
+
+        $requiresFormatting = \count($attributesToCrop) > 0 || \count($attributesToHighlight) > 0;
+        $showMatchesPosition = $this->queryParameters->showMatchesPosition();
+
+        if (!$requiresFormatting && !$showMatchesPosition) {
+            return;
+        }
+
+        $matchPositionInfo = [];
+
+        foreach ($queryResult as $key => $value) {
+            // Need to check for null because it might be that there was no match for a given term in this document
+            if (str_starts_with((string) $key, self::MATCH_POSITION_INFO_PREFIX) && null !== $value) {
+                $documentMatches = explode(',', (string) $value);
+
+                foreach ($documentMatches as $documentMatch) {
+                    [$attribute, $position, $start, $end] = explode(':', $documentMatch, 4);
+                    $matchPositionInfo[$attribute][] = [
+                        'position' => (int) $position,
+                        'start' => (int) $start,
+                        'end' => (int) $end,
+                    ];
+                }
+            }
+        }
+
+        // No match info, this should not happen (otherwise, why would it be a hit?) but defensive programming, I guess
+        if ([] === $matchPositionInfo) {
+            return;
+        }
+
+        $formatted = $hit;
+        $matchesPosition = [];
+
+        foreach ($searchableAttributes as $attribute) {
+            $hasAttributeInHit = \array_key_exists($attribute, $hit);
+
+            // Do not include any attribute not required by the result unless it must be highlighted.
+            if (!$hasAttributeInHit) {
+                if (!\in_array($attribute, $attributesToHighlight, true) || !\array_key_exists($attribute, $document)) {
+                    continue;
+                }
+
+                $formatted[$attribute] = $document[$attribute];
+            }
+
+            if (!\array_key_exists($attribute, $formatted)) {
+                continue;
+            }
+
+            $shouldCrop = \in_array($attribute, $attributesToCrop, true);
+            $shouldHighlight = \in_array($attribute, $attributesToHighlight, true);
+
+            if (!$shouldCrop && !$shouldHighlight && !$showMatchesPosition) {
+                continue;
+            }
+
+            $attributeOptions = $options;
+
+            if ($shouldCrop) {
+                $attributeOptions = $attributeOptions->withEnableCrop();
+
+                if (isset($this->queryParameters->getAttributesToCrop()[$attribute])) {
+                    $attributeOptions = $attributeOptions->withCropLength($this->queryParameters->getAttributesToCrop()[$attribute]);
+                }
+            }
+
+            if ($shouldHighlight) {
+                $attributeOptions = $attributeOptions->withEnableHighlight();
+            }
+
+            if (\is_array($formatted[$attribute])) {
+                foreach ($formatted[$attribute] as $key => $value) {
+                    // Do not pass along match positions as we don't have reliable information about the position of matches in arrays
+                    $formatterResult = $this->formatAttributeForHit($attribute, (string) $value, $queryTerms, $attributeOptions);
+
+                    if ($showMatchesPosition && $formatterResult->hasMatches()) {
+                        $matchesPosition[$attribute] ??= [];
+                        $matchesPosition[$attribute][$key] = $formatterResult->getMatchesArray();
+                    }
+
+                    if ($requiresFormatting) {
+                        $formatted[$attribute][$key] = $formatterResult->getFormattedText();
+                    }
+                }
+            } else {
+                $formatterResult = $this->formatAttributeForHit($attribute, (string) $formatted[$attribute], $queryTerms, $attributeOptions, $matchPositionInfo);
+
+                if ($showMatchesPosition && $formatterResult->hasMatches()) {
+                    $matchesPosition[$attribute] = $formatterResult->getMatchesArray();
+                }
+
+                if ($requiresFormatting) {
+                    $formatted[$attribute] = $formatterResult->getFormattedText();
+                }
+            }
+        }
+
+        if ($requiresFormatting) {
+            $hit['_formatted'] = $formatted;
+        }
+
+        if ($showMatchesPosition) {
+            $hit['_matchesPosition'] = $matchesPosition;
+        }
+    }
+
+    private function getDisplayTokens(): TokenCollection
+    {
+        if ($this->displayTokens instanceof TokenCollection) {
+            return $this->displayTokens;
+        }
+
+        if ('' === $this->queryParameters->getQuery()) {
+            return $this->displayTokens = new TokenCollection();
+        }
+
+        return $this->displayTokens = $this->engine->getTokenizer()->tokenizeQuery(
+            $this->queryParameters->getQuery(),
+            $this->engine->getConfiguration()->getMaxQueryTokens(),
+        );
+    }
+
+    private function limitPagination(): void
+    {
+        [$offset, $limit] = $this->resolveOffsetAndLimit();
+
+        if ($this->queryParameters instanceof SearchParameters) {
+            $maxTotalHits = $this->engine->getConfiguration()->getMaxTotalHits();
+            $limit = min($limit, $maxTotalHits);
+            $offset = min($offset, $maxTotalHits - $limit);
+        }
+
+        $this->queryBuilder->setFirstResult($offset);
+        $this->queryBuilder->setMaxResults($limit);
+    }
+
+    private function ensureResultConstrainedToMatches(): void
+    {
+        if (!$this->resultConstrainedToMatches) {
+            $this->requireMatchesJoin();
+        }
+    }
+
+    private function needsFoldingState(): bool
+    {
+        return \in_array('exactness', $this->engine->getConfiguration()->getRankingRules(), true);
+    }
+
+    /**
+     * If typo tolerance is disabled or neither, exactness nor typo are part of the ranking rules, we can omit
+     * calculating the info for better performance.
+     */
+    private function needsTypoCount(): bool
+    {
+        $configuration = $this->engine->getConfiguration();
+
+        if ($configuration->getTypoTolerance()->isDisabled()) {
+            return false;
+        }
+
+        return \in_array('exactness', $configuration->getRankingRules(), true) || \in_array('typo', $configuration->getRankingRules(), true);
+    }
+
+    /**
+     * _user_id is always stored as a string, so the original type has to be restored.
+     */
+    private function primaryKeyExpression(string $documentsAlias, string $primaryKey): string|null
+    {
+        return match ($this->engine->getIndexInfo()->getDocumentSchema()[$primaryKey] ?? null) {
+            LoupeTypes::TYPE_STRING => $documentsAlias.'._user_id',
+            LoupeTypes::TYPE_NUMBER => \sprintf('CAST(%s._user_id AS NUMERIC)', $documentsAlias),
+            default => null,
+        };
+    }
+
+    private function query(): Result
+    {
+        $queryParts = [];
+
+        if ([] !== $this->ctesByName) {
+            $queryParts[] = 'WITH';
+
+            foreach ($this->ctesByName as $name => $cte) {
+                $materializedHint = match ($cte->isMaterialized()) {
+                    true => 'MATERIALIZED ',
+                    false => 'NOT MATERIALIZED ',
+                    null => '',
+                };
+                $queryParts[] = \sprintf(
+                    '%s (%s) AS %s(%s)',
+                    $name,
+                    implode(',', $cte->getColumnAliasList()),
+                    $materializedHint,
+                    $cte->getQuerySql(),
+                );
+                $queryParts[] = ',';
+            }
+
+            array_pop($queryParts);
+        }
+
+        $queryParts[] = $this->queryBuilder->getSQL();
+
+        return $this->engine->getConnection()->executeQuery(
+            implode(' ', $queryParts),
+            $this->queryBuilder->getParameters(),
+            $this->queryBuilder->getParameterTypes(),
+        );
+    }
+
+    /**
+     * @return array{int, int}
+     */
+    private function resolveOffsetAndLimit(): array
+    {
+        $offset = $this->queryParameters->getOffset();
+        $limit = $this->queryParameters->getLimit();
+
+        if (null !== $this->queryParameters->getHitsPerPage() || null !== $this->queryParameters->getPage()) {
+            $limit = $this->queryParameters->getHitsPerPage() ?? SearchParameters::MAX_LIMIT;
+            $offset = (($this->queryParameters->getPage() ?? 1) - 1) * $limit;
+        }
+
+        return [$offset, $limit];
+    }
+
+    private function scanDocuments(): BrowseResult
+    {
+        $start = (int) floor(microtime(true) * 1000);
+
+        [$offset, $limit] = $this->resolveOffsetAndLimit();
+
+        $documentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS);
+        $queryBuilder = $this->engine->getConnection()->createQueryBuilder()
+            ->from(IndexInfo::TABLE_NAME_DOCUMENTS, $documentsAlias)
+            ->orderBy($documentsAlias.'._id', 'ASC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+        ;
+
+        $hits = $this->fetchHits($queryBuilder, $documentsAlias, $this->queryParameters->getAttributesToRetrieve());
+        $totalHits = [] === $hits ? 0 : $this->engine->countDocuments();
+        [$currentPage, $totalPages] = $this->calculatePagination($offset, $limit, $totalHits);
+
+        return new BrowseResult(
+            $hits,
+            $this->queryParameters->getQuery(),
+            (int) floor(microtime(true) * 1000) - $start,
+            $limit,
+            $currentPage,
+            $totalPages,
+            $totalHits,
+        );
+    }
+
+    private function searchDocuments(TokenCollection $tokenCollection): void
+    {
+        $this->addTermMatchesCTEs($tokenCollection);
+        $this->addTermDocumentsCTEs($tokenCollection);
+        $this->addTermDocumentMatchesCTEs($tokenCollection);
+    }
+
+    private function selectDistance(): void
+    {
+        foreach ($this->queryParameters->getAttributesToRetrieve() as $attribute) {
+            if (str_starts_with($attribute, '_geoDistance(')) {
+                $attribute = (string) preg_replace('/^_geoDistance\(('.Configuration::ATTRIBUTE_NAME_RGXP.')\)$/', '$1', $attribute);
+                $cteName = self::DISTANCE_ALIAS.'_'.$attribute;
+
+                if (!$this->hasCTE($cteName)) {
+                    continue;
+                }
+
+                $this->markFullResultCountRequired();
+                $this->requireMatchesJoin();
+
+                $this->queryBuilder->addSelect($cteName.'.distance AS '.self::DISTANCE_ALIAS.'_'.$attribute);
+                $this->queryBuilder
+                    ->innerJoin(
+                        self::CTE_MATCHES,
+                        $cteName,
+                        $cteName,
+                        \sprintf(
+                            '%s.document_id = %s.document_id',
+                            $cteName,
+                            self::CTE_MATCHES,
+                        ),
+                    )
+                ;
+            }
+        }
+    }
+
+    private function selectDocuments(): void
+    {
+        $documentsAlias = $this->engine->getIndexInfo()->getAliasForTable(IndexInfo::TABLE_NAME_DOCUMENTS);
+        $this->queryBuilder
+            ->addSelect($documentsAlias.'._id AS '.self::DOCUMENT_ID_ALIAS)
+            ->addSelect($documentsAlias.'._document')
+            ->from(IndexInfo::TABLE_NAME_DOCUMENTS, $documentsAlias)
+        ;
+    }
+
+    private function selectTotalHits(): void
+    {
+        // COUNT() OVER() makes SQLite process the complete sorted result before LIMIT can apply. If the query preserves
+        // the match count, count the materialized matches directly instead.
+        $count = $this->shouldUseWindowForTotalHits()
+            ? 'COUNT() OVER()'
+            : \sprintf('(SELECT COUNT(*) FROM %s)', self::CTE_MATCHES);
+
+        if ($this->queryParameters instanceof SearchParameters) {
+            $count = \sprintf('MIN(%d, %s)', $this->engine->getConfiguration()->getMaxTotalHits(), $count);
+        }
+
+        $this->queryBuilder->addSelect($count.' AS totalHits');
+    }
+
+    private function shouldUseWindowForTotalHits(): bool
+    {
+        if ($this->fullResultCountRequired) {
+            return true;
+        }
+
+        // Phrase queries already produce a small materialized match set, which is cheaper to count in the result window
+        // than to scan again in a scalar subquery.
+        foreach ($this->getSearchTokens()->all() as $token) {
+            if ($token->isPartOfPhrase()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function sortDocuments(): void
+    {
+        $this->sorting->applySorters($this);
+
+        // Append document id as final stable tiebreaker to ensure deterministic order regardless of query plan
+        $this->addOrderBy(self::DOCUMENT_ID_ALIAS, 'ASC');
+    }
+}

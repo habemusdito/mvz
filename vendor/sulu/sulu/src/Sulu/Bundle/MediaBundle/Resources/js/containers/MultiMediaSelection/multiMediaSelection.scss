@@ -1,0 +1,16 @@
+.media-item {
+    display: flex;
+    height: 40px;
+    align-items: center;
+
+    .thumbnail-image {
+        display: block;
+        width: 25px;
+        height: 25px;
+    }
+
+    .media-title {
+        overflow: hidden;
+        margin-left: 15px;
+    }
+}

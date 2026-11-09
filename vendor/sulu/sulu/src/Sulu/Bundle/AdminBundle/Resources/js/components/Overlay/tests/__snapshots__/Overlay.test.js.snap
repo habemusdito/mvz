@@ -1,0 +1,173 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`The component should not render the footer where there is no onConfirm and no actions 1`] = `
+<body>
+  <div />
+  <div>
+    <div
+      class="backdrop visible fixed"
+      data-testid="backdrop"
+      role="button"
+    />
+    <div
+      class="container isDown"
+    >
+      <div
+        class="overlay small"
+      >
+        <section
+          class="content"
+        >
+          <header
+            class="header"
+          >
+            <h2>
+              My overlay title
+            </h2>
+            <span
+              aria-label="su-times"
+              class="su-times clickable icon"
+              role="button"
+              tabindex="0"
+            />
+          </header>
+          <article
+            class="article"
+          >
+            <p>
+              My overlay content
+            </p>
+          </article>
+          <div
+            class="snackbar"
+          >
+            <div
+              class="snackbar error"
+              role="button"
+            >
+              <span
+                aria-label="su-exclamation-triangle"
+                class="su-exclamation-triangle icon"
+              />
+              <div
+                class="text"
+              >
+                <strong>
+                  sulu_admin.error
+                </strong>
+                 - 
+                
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</body>
+`;
+
+exports[`The component should render in body when open 1`] = `
+<body>
+  <div />
+  <div>
+    <div
+      class="backdrop visible fixed"
+      data-testid="backdrop"
+      role="button"
+    />
+    <div
+      class="container isDown"
+    >
+      <div
+        class="overlay small"
+      >
+        <section
+          class="content"
+        >
+          <header
+            class="header"
+          >
+            <h2>
+              My overlay title
+            </h2>
+            <span
+              aria-label="su-times"
+              class="su-times clickable icon"
+              role="button"
+              tabindex="0"
+            />
+          </header>
+          <article
+            class="article"
+          >
+            <p>
+              My overlay content
+            </p>
+          </article>
+          <footer
+            class="footer"
+          >
+            <div
+              class="actions"
+            >
+              <button
+                class="button link hasText"
+                type="button"
+              >
+                <span
+                  class="buttonText"
+                >
+                  Action 1
+                </span>
+              </button>
+              <button
+                class="button link hasText"
+                type="button"
+              >
+                <span
+                  class="buttonText"
+                >
+                  Action 2
+                </span>
+              </button>
+            </div>
+            <button
+              class="button primary hasText"
+              type="button"
+            >
+              <span
+                class="buttonText"
+              >
+                Apply
+              </span>
+            </button>
+          </footer>
+          <div
+            class="snackbar"
+          >
+            <div
+              class="snackbar error"
+              role="button"
+            >
+              <span
+                aria-label="su-exclamation-triangle"
+                class="su-exclamation-triangle icon"
+              />
+              <div
+                class="text"
+              >
+                <strong>
+                  sulu_admin.error
+                </strong>
+                 - 
+                
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</body>
+`;

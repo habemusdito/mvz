@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`The component should render 1`] = `
+<div>
+  <li>
+    <button
+      class="action"
+      type="button"
+    >
+      My action
+    </button>
+  </li>
+</div>
+`;

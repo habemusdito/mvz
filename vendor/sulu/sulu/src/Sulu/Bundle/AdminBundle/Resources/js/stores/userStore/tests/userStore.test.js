@@ -1,0 +1,447 @@
+// @flow
+import userStore from '../userStore';
+import Requester from '../../../services/Requester';
+import initializer from '../../../services/initializer';
+import localizationStore from '../../../stores/localizationStore';
+
+jest.mock('debounce', () => jest.fn((callback) => callback));
+
+jest.mock('../../../services/Requester', () => ({
+    get: jest.fn(),
+    post: jest.fn(),
+    patch: jest.fn(),
+}));
+
+jest.mock('../../../services/initializer', () => ({
+    initialize: jest.fn(),
+}));
+
+jest.mock('../../../stores/localizationStore', () => ({
+    localizations: [],
+}));
+
+jest.mock('../../../services/Config', () => ({
+    fallbackLocale: 'en',
+    endpoints: {
+        loginCheck: 'login_check_url',
+        forgotPasswordReset: 'forgot_password_reset_url',
+        resetPassword: 'reset_password_url',
+        logout: 'logout_url',
+        profileSettings: 'profile_settings_url',
+        twoFactorLoginCheck: 'two_factor_login_check',
+    },
+    passwordPattern: '.{6,}',
+}));
+
+beforeEach(() => {
+    userStore.clear();
+});
+
+test('Should clear the user store', () => {
+    const user = {id: 1, locale: 'cool_locale', settings: {}, username: 'test', roles: []};
+    const contact = {id: 12, avatar: undefined, firstName: 'Firsti', lastName: 'Lasti', fullName: 'Firsti Lasti'};
+    userStore.setLoggedIn(true);
+    userStore.setLoading(true);
+    userStore.setLoginError(true);
+    userStore.setForgotPasswordSuccess(true);
+    userStore.setUser(user);
+    userStore.setContact(contact);
+    userStore.setPersistentSetting('something', 'somevalue');
+    userStore.setFullName(contact.firstName + ' ' + contact.lastName);
+
+    expect(userStore.loggedIn).toBe(true);
+    expect(userStore.loading).toBe(true);
+    expect(userStore.loginError).toBe(true);
+    expect(userStore.forgotPasswordSuccess).toBe(true);
+    expect(userStore.user).toEqual(user);
+    expect(userStore.contact).toEqual(contact);
+    if (userStore.contact){
+        expect(userStore.contact.fullName).toEqual(contact.firstName + ' ' + contact.lastName);
+    }
+    expect(userStore.persistentSettings.size).toBe(1);
+
+    userStore.clear();
+
+    expect(userStore.persistentSettings.size).toBe(0);
+});
+
+test('Should reset the forced two factor setup flag when the store is cleared', () => {
+    userStore.setTwoFactorSetupRequired(true);
+    expect(userStore.twoFactorSetupRequired).toBe(true);
+
+    userStore.clear();
+
+    expect(userStore.twoFactorSetupRequired).toBe(false);
+});
+
+test('Should return the locale of the user as system-locale', () => {
+    userStore.setUser({
+        id: 5,
+        locale: 'de',
+        settings: {},
+        username: 'test',
+        roles: [],
+    });
+
+    expect(userStore.systemLocale).toEqual('de');
+});
+
+test('Should return the fallback locale as system-locale if the user has none set', () => {
+    expect(userStore.systemLocale).toEqual('en');
+});
+
+test('Should return the fallback-locale as content-locale if the user is not set', () => {
+    expect(userStore.contentLocale).toEqual('en');
+});
+
+test('Should load and set first default-localization as content-locale when user is set', () => {
+    localizationStore.localizations = [
+        {locale: 'cz', country: '', language: 'cz', default: '', shadow: ''},
+        {locale: 'ru', country: '', language: 'ru', default: 'true', shadow: ''},
+        {locale: 'de', country: '', language: 'de', default: '', shadow: ''},
+    ];
+
+    userStore.setUser({
+        id: 5,
+        locale: 'de',
+        settings: {},
+        username: 'test',
+        roles: [],
+    });
+
+    expect(userStore.contentLocale).toEqual('ru');
+});
+
+test('Should load and set first localization as content-locale if there is no default-localiztion', () => {
+    localizationStore.localizations = [
+        {locale: 'cz', country: '', language: 'cz', default: '', shadow: ''},
+        {locale: 'ru', country: '', language: 'ru', default: '', shadow: ''},
+        {locale: 'de', country: '', language: 'de', default: '', shadow: ''},
+    ];
+
+    userStore.setUser({
+        id: 5,
+        locale: 'de',
+        settings: {},
+        username: 'test',
+        roles: [],
+    });
+
+    expect(userStore.contentLocale).toEqual('cz');
+});
+
+test('Should return initial persistent settings', () => {
+    userStore.setUser({
+        id: 5,
+        locale: 'de',
+        settings: {
+            test1: 'value1',
+        },
+        username: 'test',
+        roles: [],
+    });
+
+    expect(userStore.getPersistentSetting('test1')).toEqual('value1');
+});
+
+test('Should set persistent setting', () => {
+    userStore.setPersistentSetting('categories.sortColumn', 'name');
+    expect(userStore.getPersistentSetting('categories.sortColumn')).toEqual('name');
+
+    userStore.setPersistentSetting('test.object', {abc: 'DEF', abc2: 'DEF2'});
+    expect(userStore.getPersistentSetting('test.object')).toEqual({abc: 'DEF', abc2: 'DEF2'});
+});
+
+test('Should update persistent settings of server with a debounce delay of 5 seconds', () => {
+    userStore.setPersistentSetting('test1', 'value1');
+    expect(Requester.patch).toHaveBeenCalledWith('profile_settings_url', {test1: 'value1'});
+
+    userStore.setPersistentSetting('test2', 'value2');
+    expect(Requester.patch).toHaveBeenCalledWith('profile_settings_url', {test2: 'value2'});
+});
+
+test('Should not update persistent setting if the value did not change', () => {
+    userStore.setPersistentSetting('test1', 'test');
+    expect(Requester.patch).toHaveBeenCalledWith('profile_settings_url', {test1: 'test'});
+
+    Requester.patch.mockReset();
+    userStore.setPersistentSetting('test1', 'test');
+    expect(Requester.patch).not.toHaveBeenCalled();
+});
+
+test('Should also update persistent setting with the value of false on the server', () => {
+    userStore.setPersistentSetting('test1', false);
+    expect(Requester.patch).toHaveBeenCalledWith('profile_settings_url', {test1: false});
+});
+
+test('Should login', () => {
+    const loginPromise = Promise.resolve({});
+    const initializePromise = Promise.resolve({});
+
+    Requester.post.mockReturnValue(loginPromise);
+    initializer.initialize.mockReturnValue(initializePromise);
+
+    userStore.login({username: 'test', password: 'password'});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith('login_check_url', {username: 'test', password: 'password'});
+        expect(initializer.initialize).toHaveBeenCalledWith(true);
+
+        return initializePromise.then(() => {
+            expect(userStore.loading).toBe(false);
+        });
+    });
+});
+
+test('Should login after the password was reset', () => {
+    const resetPromise = Promise.resolve({});
+    const initializePromise = Promise.resolve({});
+
+    Requester.post.mockReturnValue(resetPromise);
+    initializer.initialize.mockReturnValue(initializePromise);
+
+    userStore.resetPassword({password: 'test', token: 'some-uuid'});
+    expect(userStore.loading).toBe(true);
+
+    return resetPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith('reset_password_url', {password: 'test', token: 'some-uuid'});
+        expect(initializer.initialize).toHaveBeenCalledWith(true);
+
+        return initializePromise.then(() => {
+            expect(userStore.loading).toBe(false);
+        });
+    });
+});
+
+test('Should login without initializing when it`s the same user', () => {
+    const user = {id: 1, locale: 'cool_locale', settings: {}, username: 'test', roles: []};
+    const loginPromise = Promise.resolve({
+        username: 'test',
+        completed: true,
+    });
+    Requester.post.mockReturnValue(loginPromise);
+    userStore.setUser(user);
+
+    userStore.login({username: 'test', password: 'password'});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith('login_check_url', {username: 'test', password: 'password'});
+        expect(initializer.initialize).not.toHaveBeenCalled();
+        expect(userStore.loading).toBe(false);
+        expect(userStore.loggedIn).toBe(true);
+    });
+});
+
+test('Should set two factor methods after login when completed false', () => {
+    const loginPromise = Promise.resolve({
+        username: 'test',
+        completed: false,
+        twoFactorMethods: ['email', 'trusted_devices'],
+    });
+    Requester.post.mockReturnValue(loginPromise);
+
+    userStore.login({username: 'test', password: 'password'});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith('login_check_url', {username: 'test', password: 'password'});
+        expect(initializer.initialize).not.toHaveBeenCalled();
+        expect(userStore.loading).toBe(false);
+        expect(userStore.loggedIn).toBe(false);
+        expect(userStore.twoFactorMethods).toEqual(['email', 'trusted_devices']);
+    });
+});
+
+test('Should do nothing when not completed but no two factor methods provided', () => {
+    const loginPromise = Promise.resolve({
+        username: 'test',
+        completed: false,
+    });
+    Requester.post.mockReturnValue(loginPromise);
+
+    userStore.login({username: 'test', password: 'password'});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith('login_check_url', {username: 'test', password: 'password'});
+        expect(initializer.initialize).not.toHaveBeenCalled();
+        expect(userStore.loading).toBe(false);
+        expect(userStore.loggedIn).toBe(false);
+        expect(userStore.twoFactorMethods).toEqual([]);
+    });
+});
+
+test('Should login with initializing when it`s not the same user', () => {
+    const user = {id: 1, locale: 'cool_locale', settings: {}, username: 'test', roles: []};
+    const loginPromise = Promise.resolve({});
+    const initializePromise = Promise.resolve({});
+    userStore.setUser(user);
+
+    Requester.post.mockReturnValue(loginPromise);
+
+    userStore.login({username: 'other-user-than-test', password: 'password'});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith(
+            'login_check_url',
+            {username: 'other-user-than-test', password: 'password'}
+        );
+        expect(initializer.initialize).toHaveBeenCalledWith(true);
+        expect(userStore.loading).toBe(true);
+        expect(userStore.loggedIn).toBe(false);
+        expect(userStore.loginError).toBe(false);
+        expect(userStore.forgotPasswordSuccess).toBe(false);
+        expect(userStore.user).toBeUndefined();
+        expect(userStore.contact).toBeUndefined();
+
+        return initializePromise.then(() => {
+            expect(userStore.loading).toBe(false);
+        });
+    });
+});
+
+test('Should show error when login is not working and error status is 401', () => {
+    Requester.post.mockReturnValue(Promise.reject({status: 401}));
+
+    const loginPromise = userStore.login({username: 'test', password: 'password'});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise
+        .then(() => {
+            expect(Requester.post).toHaveBeenCalledWith('login_check_url', {username: 'test', password: 'password'});
+            expect(initializer.initialize).not.toHaveBeenCalled();
+            expect(userStore.loginError).toBe(true);
+            expect(userStore.loggedIn).toBe(false);
+            expect(userStore.loading).toBe(false);
+        });
+});
+test('Should two factor login', () => {
+    const loginPromise = Promise.resolve({
+        username: 'test',
+        completed: true,
+    });
+    const initializePromise = Promise.resolve({});
+
+    Requester.post.mockReturnValue(loginPromise);
+    initializer.initialize.mockReturnValue(initializePromise);
+
+    userStore.twoFactorLogin({_auth_code: 'test', _trusted: false});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith('two_factor_login_check', {_auth_code: 'test', _trusted: false});
+        expect(initializer.initialize).toHaveBeenCalledWith(true);
+
+        return initializePromise.then(() => {
+            expect(userStore.loading).toBe(false);
+        });
+    });
+});
+
+test('Should two factor login without initializing when it`s the same user', () => {
+    const user = {id: 1, locale: 'en', settings: {}, username: 'test', roles: []};
+    const loginPromise = Promise.resolve({
+        username: 'test',
+        completed: true,
+    });
+    Requester.post.mockReturnValue(loginPromise);
+    userStore.setUser(user);
+
+    userStore.twoFactorLogin({_auth_code: 'test', _trusted: false});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith('two_factor_login_check', {_auth_code: 'test', _trusted: false});
+        expect(initializer.initialize).not.toHaveBeenCalled();
+        expect(userStore.loading).toBe(false);
+        expect(userStore.loggedIn).toBe(true);
+    });
+});
+
+test('Should two factor login with initializing when it`s not the same user', () => {
+    const user = {id: 1, locale: 'en', settings: {}, username: 'test', roles: []};
+    const loginPromise = Promise.resolve({
+        username: 'other-user-than-test',
+        completed: true,
+    });
+    const initializePromise = Promise.resolve({});
+    userStore.setUser(user);
+
+    Requester.post.mockReturnValue(loginPromise);
+
+    userStore.twoFactorLogin({_auth_code: 'test', _trusted: false});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith(
+            'two_factor_login_check',
+            {_auth_code: 'test', _trusted: false}
+        );
+        expect(initializer.initialize).toHaveBeenCalledWith(true);
+        expect(userStore.loading).toBe(true);
+        expect(userStore.loggedIn).toBe(false);
+        expect(userStore.loginError).toBe(false);
+        expect(userStore.forgotPasswordSuccess).toBe(false);
+        expect(userStore.user).toBeUndefined();
+        expect(userStore.contact).toBeUndefined();
+
+        return initializePromise.then(() => {
+            expect(userStore.loading).toBe(false);
+        });
+    });
+});
+
+test('Should show error when two factor login is not working and error status is 401', () => {
+    Requester.post.mockReturnValue(Promise.reject({status: 401}));
+
+    const loginPromise = userStore.twoFactorLogin({_auth_code: 'test', _trusted: false});
+    expect(userStore.loading).toBe(true);
+
+    return loginPromise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith('two_factor_login_check', {_auth_code: 'test', _trusted: false});
+        expect(initializer.initialize).not.toHaveBeenCalled();
+        expect(userStore.twoFactorError).toBe(true);
+        expect(userStore.loggedIn).toBe(false);
+        expect(userStore.loading).toBe(false);
+    });
+});
+
+test('Should send an email when the password is forgotten', () => {
+    Requester.post.mockReturnValue(Promise.resolve({}));
+
+    const promise = userStore.forgotPassword({user: 'test'});
+    expect(userStore.loading).toBe(true);
+
+    return promise.then(() => {
+        expect(Requester.post).toHaveBeenCalledWith('forgot_password_reset_url', {user: 'test'});
+        expect(userStore.forgotPasswordSuccess).toBe(true);
+        expect(userStore.loggedIn).toBe(false);
+        expect(userStore.loading).toBe(false);
+    });
+});
+
+test('Should logout', () => {
+    userStore.setLoggedIn(true);
+    Requester.get.mockReturnValue(Promise.resolve({}));
+
+    const promise = userStore.logout();
+
+    return promise.then(() => {
+        expect(Requester.get).toHaveBeenCalledWith('logout_url');
+        expect(userStore.loggedIn).toBe(false);
+    });
+});
+
+test('Should update persistent settings on updateContentLocale', () => {
+    userStore.updateContentLocale('fr');
+    expect(Requester.patch).toHaveBeenCalledWith('profile_settings_url', {'sulu_admin.content_locale': 'fr'});
+    expect(userStore.contentLocale).toBe('fr');
+});
+
+test('Should validate password', () => {
+    expect(userStore.validatePassword('12345')).toBeFalsy();
+    expect(userStore.validatePassword('123456')).toBeTruthy();
+});

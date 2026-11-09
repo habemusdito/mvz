@@ -1,0 +1,23 @@
+@import '../../containers/Application/colors.scss';
+@import './variables.scss';
+
+.column {
+    flex-grow: 1;
+    background: $columnListBackgroundColor;
+    border-right: $columnBorder;
+    display: inline-block;
+    vertical-align: top;
+    width: $columnWidth;
+    height: 100%;
+    overflow-y: auto;
+
+    &.scrolling:last-child {
+        border-right: none;
+        width: calc($columnWidth - 1px);
+    }
+}
+
+.loader {
+    height: 100%;
+    display: flex;
+}

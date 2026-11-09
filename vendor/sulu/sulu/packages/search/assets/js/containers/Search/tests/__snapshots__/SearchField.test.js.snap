@@ -1,0 +1,91 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Render with selected and query 1`] = `
+<DocumentFragment>
+  <div
+    class="searchField"
+  >
+    <button
+      class="searchResourceButton"
+      type="button"
+    >
+      <span
+        class="searchResource"
+      >
+        Page
+      </span>
+      <span
+        aria-label="su-angle-down"
+        class="su-angle-down"
+      />
+    </button>
+    <div
+      class="inputContainer"
+    >
+      <input
+        class="input"
+        value="Test"
+      />
+      <span
+        aria-label="su-times"
+        class="su-times clickable clearIcon"
+        role="button"
+        tabindex="0"
+      />
+      <span
+        aria-label="su-search"
+        class="su-search clickable searchIcon"
+        role="button"
+        tabindex="0"
+      />
+    </div>
+  </div>
+  <p
+    class="hint"
+  >
+    sulu_search.search_hint
+  </p>
+</DocumentFragment>
+`;
+
+exports[`Render without selected searchResource 1`] = `
+<DocumentFragment>
+  <div
+    class="searchField"
+  >
+    <button
+      class="searchResourceButton"
+      type="button"
+    >
+      <span
+        class="searchResource"
+      >
+        sulu_search.everything
+      </span>
+      <span
+        aria-label="su-angle-down"
+        class="su-angle-down"
+      />
+    </button>
+    <div
+      class="inputContainer"
+    >
+      <input
+        class="input"
+        value=""
+      />
+      <span
+        aria-label="su-search"
+        class="su-search clickable searchIcon"
+        role="button"
+        tabindex="0"
+      />
+    </div>
+  </div>
+  <p
+    class="hint"
+  >
+    sulu_search.search_hint
+  </p>
+</DocumentFragment>
+`;

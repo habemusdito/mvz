@@ -1,0 +1,170 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Content\Tests\Traits;
+
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
+use Sulu\Content\Application\ContentDataMapper\ContentDataMapper;
+use Sulu\Content\Domain\Model\DimensionContentCollection;
+use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Content\Domain\Model\WorkflowInterface;
+use Sulu\Content\Tests\Application\ExampleTestBundle\Entity\Example;
+use Sulu\Content\Tests\Application\ExampleTestBundle\Entity\ExampleDimensionContent;
+use Sulu\Route\Domain\Model\Route;
+use Symfony\Component\String\Slugger\AsciiSlugger;
+use Webmozart\Assert\Assert;
+
+trait CreateExampleTrait
+{
+    /**
+     * @param array<string, array{ draft?: array<string, mixed>, live?: array<string, mixed> }> $dataSet
+     * @param array{create_route?: bool} $options
+     */
+    protected static function createExample(array $dataSet = [], array $options = []): Example
+    {
+        $entityManager = static::getEntityManager();
+        $contentDataMapper = new ContentDataMapper([
+            static::getContainer()->get('sulu_content.template_data_mapper'),
+            static::getContainer()->get('sulu_content.excerpt_data_mapper'),
+            static::getContainer()->get('sulu_content.taxonomy_data_mapper'),
+            static::getContainer()->get('sulu_content.seo_data_mapper'),
+            static::getContainer()->get('sulu_content.workflow_data_mapper'),
+            // for performance reasons we avoid here route mapper and create the route manually when needed
+        ]);
+
+        $example = new Example();
+
+        if ($options['create_route'] ?? false) {
+            Assert::isInstanceOf($entityManager, EntityManager::class);
+            $entityManager->persist($example);
+        }
+
+        $slugger = new AsciiSlugger();
+
+        /** @var (callable(array<string, mixed>): non-empty-array<string, mixed>) $fillWithDefaultData */
+        $fillWithDefaultData = function(array $data) use ($slugger): array { // @phpstan-ignore varTag.nativeType
+            // the example default template has the following required fields
+            $data['title'] = $data['title'] ?? 'Test Example';
+            Assert::string($data['title']);
+            $data['url'] = $data['url'] ?? '/' . $slugger->slug($data['title'])->toString();
+            $data['description'] = $data['description'] ?? null;
+            $data['image'] = $data['image'] ?? null;
+            $data['article'] = $data['article'] ?? null;
+            $data['blocks'] = $data['blocks'] ?? [];
+
+            return $data;
+        };
+
+        // the following is always defined see also: https://github.com/phpstan/phpstan/issues/4343
+        $draftUnlocalizedDimension = null;
+
+        if (\count($dataSet)) {
+            $draftUnlocalizedDimension = new ExampleDimensionContent($example);
+            $example->addDimensionContent($draftUnlocalizedDimension);
+            $entityManager->persist($draftUnlocalizedDimension);
+        }
+
+        $liveUnlocalizedDimension = null;
+        $createdPublishedUnlocalizedDimension = false;
+
+        foreach ($dataSet as $locale => $data) {
+            /** @var array<string, mixed> $draftData */
+            $draftData = $data['draft'] ?? $data['live'] ?? [];
+            $liveData = $data['live'] ?? null;
+
+            // create localized draft dimension
+            $draftLocalizedDimension = new ExampleDimensionContent($example);
+            $draftLocalizedDimension->setLocale($locale);
+            $example->addDimensionContent($draftLocalizedDimension);
+            $entityManager->persist($draftLocalizedDimension);
+
+            // Map Draft Data
+            $draftDimensionContentCollection = new DimensionContentCollection(
+                new ArrayCollection([$draftUnlocalizedDimension, $draftLocalizedDimension]),
+                ['stage' => DimensionContentInterface::STAGE_DRAFT, 'locale' => $locale],
+                ExampleDimensionContent::class
+            );
+            $contentDataMapper->map(
+                $draftDimensionContentCollection,
+                $draftDimensionContentCollection->getDimensionAttributes(),
+                $fillWithDefaultData($draftData)
+            );
+            $draftLocalizedDimension->setWorkflowPlace(WorkflowInterface::WORKFLOW_PLACE_DRAFT);
+
+            if ($liveData) {
+                if (!$createdPublishedUnlocalizedDimension) {
+                    // create localized live dimension
+                    $liveUnlocalizedDimension = new ExampleDimensionContent($example);
+                    $liveUnlocalizedDimension->setStage(DimensionContentInterface::STAGE_LIVE);
+                    $example->addDimensionContent($liveUnlocalizedDimension);
+                    $entityManager->persist($liveUnlocalizedDimension);
+                    $createdPublishedUnlocalizedDimension = true;
+                }
+
+                // create localized live dimension
+                $liveLocalizedDimension = new ExampleDimensionContent($example);
+                $liveLocalizedDimension->setStage(DimensionContentInterface::STAGE_LIVE);
+                $liveLocalizedDimension->setLocale($locale);
+                $example->addDimensionContent($liveLocalizedDimension);
+                $entityManager->persist($liveLocalizedDimension);
+
+                // set published state
+                if (isset($data['draft'])) {
+                    $draftLocalizedDimension->setWorkflowPlace(WorkflowInterface::WORKFLOW_PLACE_DRAFT);
+                } else {
+                    $draftLocalizedDimension->setWorkflowPlace(WorkflowInterface::WORKFLOW_PLACE_PUBLISHED);
+                }
+
+                $draftLocalizedDimension->setWorkflowPublished(new \DateTimeImmutable());
+                $liveLocalizedDimension->setWorkflowPublished(new \DateTimeImmutable());
+
+                // map data
+                $liveDimensionContentCollection = new DimensionContentCollection(
+                    new ArrayCollection(\array_filter([$liveUnlocalizedDimension, $liveLocalizedDimension])),
+                    ['stage' => DimensionContentInterface::STAGE_LIVE, 'locale' => $locale],
+                    ExampleDimensionContent::class
+                );
+                $liveData['published'] = \date('Y-m-d H:i:s');
+                $contentDataMapper->map(
+                    $liveDimensionContentCollection,
+                    $liveDimensionContentCollection->getDimensionAttributes(),
+                    $fillWithDefaultData($liveData)
+                );
+
+                if ($options['create_route'] ?? false) {
+                    /** @var array{url: string} $filledDraftData */
+                    $filledDraftData = $fillWithDefaultData($draftData);
+
+                    $route = Route::createRouteWithTempId(
+                        Example::RESOURCE_KEY,
+                        fn () => (string) $example->getId(),
+                        $locale,
+                        $filledDraftData['url'],
+                    );
+
+                    $entityManager->persist($route);
+                    $liveLocalizedDimension->setRoute($route);
+                    $draftLocalizedDimension->setRoute($route);
+                }
+            }
+        }
+
+        $entityManager->persist($example);
+
+        return $example;
+    }
+
+    abstract protected static function getEntityManager(): EntityManagerInterface;
+}

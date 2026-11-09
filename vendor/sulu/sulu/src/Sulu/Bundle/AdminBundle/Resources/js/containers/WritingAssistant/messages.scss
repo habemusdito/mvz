@@ -1,0 +1,37 @@
+@import '../Application/colors.scss';
+
+/* the list takes whatever the fixed dialog height leaves over and scrolls on its own, so the prompt
+   stays reachable no matter how long the conversation gets */
+.messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    border-radius: 3px;
+    padding: 0 40px 20px;
+}
+
+/* the selected text stays in place so it can be compared with an answer further down the list.
+   answers scrolling out of view fade into the background instead of being cut off hard */
+.selected-text {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: $concrete;
+    padding-top: 20px;
+    padding-bottom: 16px;
+
+    &.scrolled::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: -40px;
+        right: -40px;
+        height: 40px;
+        background: linear-gradient(to bottom, $concrete 0%, rgb(242 242 242 / 0%) 100%);
+        pointer-events: none;
+    }
+}
+
+.error {
+    margin-bottom: 16px;
+}

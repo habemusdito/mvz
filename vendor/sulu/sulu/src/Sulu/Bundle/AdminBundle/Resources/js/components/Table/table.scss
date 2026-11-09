@@ -1,0 +1,298 @@
+@import '../../containers/Application/colors.scss';
+
+$headerTextDarkColor: $white;
+$headerCellDarkBackgroundColor: $blueZodiac;
+$headerButtonCellDarkBorderColor: rgba($silverChalice, .25);
+$headerTextBrightColor: $black;
+$headerCellBrightBackgroundColor: $alto;
+$headerButtonCellBrightBorderColor: $silver;
+$cellTextColor: $black;
+$cellTextColorActive: $white;
+$cellBackgroundColor: $white;
+$cellBorderColor: $cellBackgroundColor;
+$cellBorderColorActive: $shakespeare;
+$buttonCellBackgroundColor: $white;
+$buttonCellBackgroundColorHover: $shakespeare;
+$buttonCellBackgroundColorDisabled: $frenchGray;
+$buttonCellBorderColor: $white;
+$buttonCellColor: $buttonCellBackgroundColorHover;
+$buttonCellColorDisabled: $buttonCellBackgroundColorDisabled;
+$buttonCellColorHover: $buttonCellBackgroundColor;
+$emptyMessageColor: $silver;
+$rowHeight: 40px;
+$headerRowHeight: 60px;
+$rowHeightFlat: 48px;
+$paddingCell: 4px;
+$borderWidth: 1px;
+$borderRadius: 3px;
+
+.table {
+    border-collapse: separate;
+    border-spacing: 0 5px;
+    overflow: hidden;
+    min-width: 100%;
+}
+
+.header > tr {
+    height: $headerRowHeight;
+}
+
+.header-cell,
+.cell,
+.button-cell {
+    &:first-child {
+        border-top-left-radius: $borderRadius;
+        border-bottom-left-radius: $borderRadius;
+        border-left-width: $borderWidth;
+    }
+
+    &:last-child {
+        border-top-right-radius: $borderRadius;
+        border-bottom-right-radius: $borderRadius;
+        border-right-width: $borderWidth;
+    }
+}
+
+.header-cell {
+    padding: 20px;
+    font-size: 12px;
+    font-weight: normal;
+
+    > span {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    &.clickable {
+        padding: 0;
+
+        button {
+            height: $headerRowHeight;
+            padding: 5px 20px;
+            color: inherit;
+            border: none;
+            background: none;
+            display: inline-flex;
+            align-items: center;
+
+            &:not(:disabled) {
+                cursor: pointer;
+            }
+        }
+    }
+}
+
+.cell,
+.header-cell {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 250px;
+    text-align: left;
+
+    &.shrink {
+        width: 1px;
+    }
+}
+
+.cell-content {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    min-height: calc($rowHeight - $paddingCell * 2 - $borderWidth * 2);
+}
+
+.toggle-icon {
+    cursor: pointer;
+    display: inline-block;
+    width: 20px;
+}
+
+.cell-select {
+    padding-right: 10px;
+}
+
+.header-cell-sort-icon {
+    padding-left: 10px;
+}
+
+.header-button-cell {
+    width: 1px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.row {
+    height: $rowHeight;
+
+    &:hover {
+        .cell {
+            border-color: $cellBorderColorActive;
+        }
+
+        .button-cell {
+            font-size: 16px;
+
+            button {
+                opacity: 1;
+            }
+        }
+    }
+
+    &.disabled {
+        pointer-events: none;
+        opacity: .5;
+
+        .cell {
+            border: $cellBorderColor;
+        }
+
+        .toggle-icon {
+            pointer-events: auto;
+        }
+    }
+}
+
+.button-cell,
+.header-button-cell {
+    width: 56px;
+
+    &.shrink {
+        width: 1px;
+    }
+}
+
+.cell,
+.button-cell {
+    margin: 0;
+    height: $rowHeight;
+    padding: $paddingCell 20px;
+    font-size: 12px;
+    border-width: $borderWidth 0;
+    border-style: solid;
+    border-color: $cellBorderColor;
+    color: $cellTextColor;
+    background-color: $cellBackgroundColor;
+}
+
+.button-cell {
+    padding: 0;
+    background-color: $cellBackgroundColor;
+    color: $buttonCellColor;
+    text-align: center;
+
+    button {
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+        color: $buttonCellColor;
+        cursor: pointer;
+        background-color: transparent;
+
+        &:disabled {
+            color: $buttonCellColorDisabled;
+            cursor: default;
+        }
+
+        &:hover:not(:disabled),
+        &:focus:not(:disabled) {
+            opacity: 1;
+            font-size: 16px;
+            background-color: $buttonCellBackgroundColorHover;
+            border-right: $borderWidth solid $buttonCellBorderColor;
+            color: $buttonCellColorHover;
+        }
+    }
+}
+
+.table-placeholder-area {
+    color: $emptyMessageColor;
+    text-align: center;
+    padding: 40px;
+}
+
+.table-placeholder-icon {
+    font-size: 38px;
+}
+
+.table-placeholder-text {
+    margin-top: 15px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.dark {
+    .header {
+        color: $headerTextDarkColor;
+    }
+
+    .header-cell {
+        background-color: $headerCellDarkBackgroundColor;
+    }
+
+    .header-button-cell {
+        border-right: $borderWidth solid $headerButtonCellDarkBorderColor;
+    }
+}
+
+.light {
+    .header {
+        color: $headerTextBrightColor;
+    }
+
+    .header-cell {
+        background-color: $headerCellBrightBackgroundColor;
+    }
+
+    .header-button-cell {
+        border-right: $borderWidth solid $headerButtonCellBrightBorderColor;
+    }
+}
+
+.flat {
+    .table {
+        border-spacing: 0 1px;
+    }
+
+    .header {
+        color: $cellTextColor;
+
+        & > tr {
+            height: $rowHeightFlat;
+        }
+    }
+
+    .header-cell {
+        background-color: $cellBackgroundColor;
+        font-weight: bold;
+        padding: $paddingCell 20px;
+        border-bottom: 1px solid $alto;
+
+        button {
+            height: $rowHeightFlat;
+        }
+    }
+
+    .row {
+        height: $rowHeightFlat;
+    }
+
+    .header-cell,
+    .cell,
+    .button-cell {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        height: $rowHeightFlat;
+    }
+
+    &:not(.has-buttons) {
+        .row:hover {
+            .cell {
+                border-color: transparent;
+            }
+        }
+    }
+}

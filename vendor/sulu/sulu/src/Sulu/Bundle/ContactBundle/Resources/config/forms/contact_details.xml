@@ -1,0 +1,154 @@
+<?xml version="1.0" ?>
+<form xmlns="http://schemas.sulu.io/template/template"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://schemas.sulu.io/template/template http://schemas.sulu.io/template/form-1.0.xsd"
+>
+    <key>contact_details</key>
+
+    <properties>
+        <section name="avatar" colspan="4">
+            <properties>
+                <property name="avatar" type="single_media_upload" colspan="11" spaceAfter="1">
+                    <params>
+                        <param name="upload_text">
+                            <meta>
+                                <info_text>sulu_contact.upload_avatar_info_text</info_text>
+                            </meta>
+                        </param>
+                        <param name="skin" value="round"/>
+                        <param name="empty_icon" value="su-user"/>
+                        <param
+                            name="collection_id"
+                            type="expression"
+                            value="service('sulu_media.system_collections.manager').getSystemCollection('sulu_contact.contact')"
+                        />
+                    </params>
+                </property>
+            </properties>
+        </section>
+        <section name="contact" colspan="8">
+            <properties>
+                <property name="firstName" type="text_line" mandatory="true" colspan="6">
+                    <meta>
+                        <title>sulu_contact.first_name</title>
+                    </meta>
+                    <params>
+                        <param name="headline" value="true"/>
+                    </params>
+                </property>
+
+                <property name="lastName" type="text_line" mandatory="true" colspan="6">
+                    <meta>
+                        <title>sulu_contact.last_name</title>
+                    </meta>
+                    <params>
+                        <param name="headline" value="true"/>
+                    </params>
+                </property>
+
+                <property name="formOfAddress" type="single_select" mandatory="true" colspan="3">
+                    <meta>
+                        <title>sulu_contact.form_of_address</title>
+                    </meta>
+                    <params>
+                        <param name="values" type="expression" value="service('sulu_contact.form_of_address_provider').getValues(locale)"/>
+                    </params>
+                </property>
+
+                <property name="title" type="single_contact_title_selection" colspan="3">
+                    <meta>
+                        <title>sulu_contact.title</title>
+                    </meta>
+                    <params>
+                        <param name="editable" value="true" />
+                    </params>
+                </property>
+
+                <property name="birthday" type="date" colspan="6">
+                    <meta>
+                        <title>sulu_contact.birthday</title>
+                    </meta>
+                </property>
+
+                <property name="account" type="single_account_selection" colspan="6">
+                    <meta>
+                        <title>sulu_contact.organization</title>
+                    </meta>
+                </property>
+
+                <property
+                    name="position"
+                    type="single_contact_position_selection"
+                    colspan="6"
+                    disabledCondition="account == null"
+                >
+                    <meta>
+                        <title>sulu_contact.position</title>
+                    </meta>
+                    <params>
+                        <param name="editable" value="true" />
+                    </params>
+                </property>
+
+                <property name="salutation" type="text_line">
+                    <meta>
+                        <title>sulu_contact.salutation</title>
+                    </meta>
+                </property>
+
+                <property name="note" type="text_area">
+                    <meta>
+                        <title>sulu_contact.note</title>
+                    </meta>
+                </property>
+
+                <section name="contactDetails">
+                    <meta>
+                        <title>sulu_contact.contact_details</title>
+                    </meta>
+                    <properties>
+                        <property name="contactDetails" type="contact_details" />
+                    </properties>
+                </section>
+
+                <section name="addresses">
+                    <meta>
+                        <title>sulu_contact.addresses</title>
+                    </meta>
+                    <properties>
+                        <property name="addresses" type="addresses"/>
+                    </properties>
+                </section>
+
+                <section name="bankAccounts">
+                    <meta>
+                        <title>sulu_contact.bank_accounts</title>
+                    </meta>
+                    <properties>
+                        <property name="bankAccounts" type="bankAccounts"/>
+                    </properties>
+                </section>
+
+                <section name="taxonomies">
+                    <meta>
+                        <title>sulu_contact.taxonomies</title>
+                    </meta>
+
+                    <properties>
+                        <property name="tags" type="tag_selection">
+                            <meta>
+                                <title>sulu_tag.tags</title>
+                            </meta>
+                        </property>
+
+                        <property name="categories" type="category_selection">
+                            <meta>
+                                <title>sulu_category.categories</title>
+                            </meta>
+                        </property>
+                    </properties>
+                </section>
+            </properties>
+        </section>
+    </properties>
+</form>

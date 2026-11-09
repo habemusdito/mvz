@@ -1,0 +1,14 @@
+@import '../../containers/Application/colors.scss';
+
+$matrixBackgroundColor: $white;
+
+.matrix {
+    background-color: $matrixBackgroundColor;
+    border-radius: 3px;
+    border-spacing: 0;
+    width: 100%;
+
+    &.disabled {
+        opacity: .5;
+    }
+}

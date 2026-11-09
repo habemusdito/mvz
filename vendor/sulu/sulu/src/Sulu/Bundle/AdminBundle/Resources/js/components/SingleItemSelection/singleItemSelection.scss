@@ -1,0 +1,59 @@
+@import '../../containers/Application/colors.scss';
+@import './variables.scss';
+
+$singleItemSelectionBackgroundColor: $white;
+$singleItemSelectionEmptyColor: $silver;
+$singleItemSelectionErrorBorderColor: $persianRed;
+$singleItemSelectionDisabledColor: $gray;
+
+.single-item-selection {
+    display: flex;
+    align-items: center;
+    background-color: $singleItemSelectionBackgroundColor;
+    height: 30px;
+    overflow: hidden;
+    border: 1px solid $singleItemSelectionBorderColor;
+    border-radius: $singleItemSelectionBorderRadius;
+
+    .item-container {
+        display: flex;
+        align-items: center;
+        text-align: left;
+        height: 100%;
+        flex-grow: 1;
+        padding-left: 10px;
+        font-size: 12px;
+
+        .item {
+            flex-grow: 1;
+        }
+
+        .clickable {
+            cursor: pointer;
+        }
+
+        .empty {
+            color: $singleItemSelectionEmptyColor;
+        }
+    }
+
+    .remove-button {
+        border: 0;
+        margin: 0 10px;
+        cursor: pointer;
+        background-color: transparent;
+    }
+
+    .loader {
+        margin: 0 10px;
+    }
+
+    &.error {
+        border-color: $singleItemSelectionErrorBorderColor;
+    }
+
+    &.disabled {
+        background-color: $singleItemSelectionDisabledBackgroundColor;
+        color: $singleItemSelectionDisabledColor;
+    }
+}

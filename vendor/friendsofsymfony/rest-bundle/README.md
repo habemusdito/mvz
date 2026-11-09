@@ -1,0 +1,34 @@
+FOSRestBundle
+=============
+
+This bundle provides various tools to rapidly develop RESTful API's &
+applications with Symfony. Features include:
+
+- A View layer to enable output and format agnostic Controllers
+- Accept header format negotiation including handling for custom mime types
+- RESTful decoding of HTTP request body and Accept headers
+- Map exception codes to HTTP response status codes
+- A serializer error renderer that returns exceptions and errors in a format
+  compatible with RFC 7807 using the Symfony Serializer component or the
+  JMS Serializer
+
+[![Build Status](https://github.com/FriendsOfSymfony/FOSRestBundle/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/FriendsOfSymfony/FOSRestBundle/actions/workflows/continuous-integration.yml)
+[![Total Downloads](https://poser.pugx.org/FriendsOfSymfony/rest-bundle/downloads.svg)](https://packagist.org/packages/FriendsOfSymfony/rest-bundle)
+[![Latest Stable Version](https://poser.pugx.org/FriendsOfSymfony/rest-bundle/v/stable.svg)](https://packagist.org/packages/FriendsOfSymfony/rest-bundle)
+
+Documentation
+-------------
+
+[Read the Documentation](https://fosrestbundle.readthedocs.io/)
+
+Please see the upgrade files (`UPGRADING-X.X.md`) for any relevant instructions when upgrading to a newer version.
+
+Installation
+------------
+
+All the installation instructions are located in the [documentation](https://fosrestbundle.readthedocs.io/en/3.x/1-setting_up_the_bundle.html).
+
+License
+-------
+
+This bundle is under the MIT license. See the complete license [in the bundle](LICENSE).

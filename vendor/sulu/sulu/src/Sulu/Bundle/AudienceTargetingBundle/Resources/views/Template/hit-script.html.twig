@@ -1,0 +1,8 @@
+<script>
+    var request = new XMLHttpRequest();
+    request.open('POST', '{{ url }}');
+    request.setRequestHeader('{{ urlHeader }}', document.URL);
+    request.setRequestHeader('{{ refererHeader }}', document.referrer);
+    request.setRequestHeader('{{ uuidHeader }}', '{{ uuid }}');
+    request.send();
+</script>

@@ -1,0 +1,349 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Content\Infrastructure\Doctrine;
+
+use Doctrine\Inflector\InflectorFactory;
+use Doctrine\ORM\Event\LoadClassMetadataEventArgs;
+use Doctrine\ORM\Mapping\Builder\ClassMetadataBuilder;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\InverseSideMapping;
+use Sulu\Bundle\AudienceTargetingBundle\Entity\TargetGroupInterface;
+use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
+use Sulu\Bundle\ContactBundle\Entity\ContactInterface;
+use Sulu\Bundle\TagBundle\Tag\TagInterface;
+use Sulu\Content\Domain\Model\AuthorInterface;
+use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Content\Domain\Model\ExcerptInterface;
+use Sulu\Content\Domain\Model\LinkInterface;
+use Sulu\Content\Domain\Model\RoutableInterface;
+use Sulu\Content\Domain\Model\SeoInterface;
+use Sulu\Content\Domain\Model\ShadowInterface;
+use Sulu\Content\Domain\Model\TaxonomyInterface;
+use Sulu\Content\Domain\Model\TemplateInterface;
+use Sulu\Content\Domain\Model\WebspaceInterface;
+use Sulu\Content\Domain\Model\WorkflowInterface;
+use Sulu\Route\Domain\Model\Route;
+
+/**
+ * @internal
+ */
+final class MetadataLoader
+{
+    /**
+     * @param array<string, mixed> $bundles
+     */
+    public function __construct(
+        private readonly array $bundles,
+    ) {
+    }
+
+    public function loadClassMetadata(LoadClassMetadataEventArgs $event): void
+    {
+        /** @var ClassMetadata<object> $metadata */
+        $metadata = $event->getClassMetadata();
+        $reflection = $metadata->getReflectionClass();
+        $resourceForeignKeyColumn = null;
+
+        if ($reflection->implementsInterface(DimensionContentInterface::class)) {
+            $this->addField($metadata, 'stage', 'string', ['length' => 15, 'nullable' => false]);
+            $this->addField($metadata, 'locale', 'string', ['length' => 15, 'nullable' => true]);
+            $this->addField($metadata, 'ghostLocale', 'string', ['length' => 15, 'nullable' => true]);
+            $this->addField($metadata, 'availableLocales', 'json', ['nullable' => true, 'options' => ['jsonb' => true]]);
+            $this->addField($metadata, 'version', 'integer', ['columnName' => 'version', 'nullable' => false]);
+
+            $this->addIndex($metadata, 'dimension', ['stage', 'locale']);
+            $this->addIndex($metadata, 'locale', ['locale']);
+            $this->addIndex($metadata, 'stage', ['stage']);
+            $this->addIndex($metadata, 'version', ['version']);
+            $this->addIndex($metadata, 'stage_version_locale', ['stage', 'version', 'locale']);
+
+            $resourceForeignKeyColumn = $this->getResourceForeignKeyColumn($metadata);
+            if (null !== $resourceForeignKeyColumn) {
+                $this->addIndex($metadata, 'resource_lookup', [
+                    $resourceForeignKeyColumn, 'stage', 'version', 'locale', 'ghostLocale',
+                ]);
+            }
+        }
+
+        if ($reflection->implementsInterface(ShadowInterface::class)) {
+            $this->addField($metadata, 'shadowLocale', 'string', ['length' => 15, 'nullable' => true]);
+            $this->addField($metadata, 'shadowLocales', 'json', ['nullable' => true, 'options' => ['jsonb' => true]]);
+        }
+
+        if ($reflection->implementsInterface(TemplateInterface::class)) {
+            $this->addField($metadata, 'templateKey', 'string', ['length' => 64]);
+            $this->addField($metadata, 'templateData', 'json', ['nullable' => false, 'options' => ['jsonb' => true]]);
+
+            $this->addIndex($metadata, 'template_key', ['templateKey']);
+
+            if (null !== $resourceForeignKeyColumn) {
+                $this->addIndex($metadata, 'resource_template_lookup', [
+                    $resourceForeignKeyColumn, 'stage', 'version', 'locale', 'templateKey',
+                ]);
+            }
+        }
+
+        if ($reflection->implementsInterface(SeoInterface::class)) {
+            $this->addField($metadata, 'seoData', 'json', ['nullable' => false, 'options' => ['jsonb' => true]]);
+            $this->addField($metadata, 'seoNoIndex', 'boolean');
+            $this->addField($metadata, 'seoNoFollow', 'boolean');
+            $this->addField($metadata, 'seoHideInSitemap', 'boolean');
+        }
+
+        if ($reflection->implementsInterface(ExcerptInterface::class)) {
+            $this->addField($metadata, 'excerptData', 'json', ['nullable' => false, 'options' => ['jsonb' => true]]);
+        }
+
+        if ($reflection->implementsInterface(TaxonomyInterface::class)) {
+            $this->addField($metadata, 'excerptSegment');
+            $this->addManyToMany($event, $metadata, 'excerptTags', TagInterface::class, 'tag_id');
+            $this->addManyToMany($event, $metadata, 'excerptCategories', CategoryInterface::class, 'category_id');
+            if ($this->bundles['SuluAudienceTargetingBundle'] ?? false) {
+                $this->addManyToMany($event, $metadata, 'excerptAudienceTargetGroups', TargetGroupInterface::class, 'target_group_id');
+            }
+        }
+
+        if ($reflection->implementsInterface(RoutableInterface::class)) {
+            $this->addManyToOne($event, $metadata, 'route', Route::class);
+        }
+
+        if ($reflection->implementsInterface(WebspaceInterface::class)) {
+            $this->addField($metadata, 'mainWebspace', 'string', ['nullable' => true]);
+        }
+
+        if ($reflection->implementsInterface(AuthorInterface::class)) {
+            $this->addField($metadata, 'authored', 'datetime_immutable', ['nullable' => true]);
+            $this->addField($metadata, 'lastModified', 'datetime_immutable', ['nullable' => true]);
+            $this->addManyToOne($event, $metadata, 'author', ContactInterface::class);
+        }
+
+        if ($reflection->implementsInterface(WorkflowInterface::class)) {
+            $this->addField($metadata, 'workflowPlace', 'string', ['length' => 31, 'nullable' => true]);
+            $this->addField($metadata, 'workflowPublished', 'datetime_immutable', ['nullable' => true]);
+
+            $this->addIndex($metadata, 'workflow_place', ['workflowPlace']);
+            $this->addIndex($metadata, 'workflow_published', ['workflowPublished']);
+        }
+
+        if ($reflection->implementsInterface(LinkInterface::class)) {
+            $this->addField($metadata, 'linkProvider', 'string', ['length' => 32, 'nullable' => true]);  // put provider into own field to faster query on it in Sitemap Providers
+            $this->addField($metadata, 'linkData', 'json', ['nullable' => true, 'options' => ['jsonb' => true]]);
+
+            $this->addIndex($metadata, 'link_provider', ['linkProvider']);
+        }
+
+        // Doctrine leaves `declared` null on inverse-side associations (OneToMany, inverse
+        // OneToOne, inverse ManyToMany) that a concrete entity inherits from a mapped-superclass.
+        // Doctrine then builds reflection against the concrete child class, where the inherited
+        // private property does not exist, and throws `ReflectionException: Property X::$y does
+        // not exist`. Owning-side associations are populated correctly and are skipped here.
+        // ORM 3.x stores mappings as `InverseSideMapping` objects; ORM 2.x stores them as arrays.
+        if (!$metadata->isMappedSuperclass) {
+            foreach ($metadata->associationMappings as $key => $mapping) {
+                $this->backfillInverseSideDeclared($metadata, $key, $mapping);
+            }
+        }
+    }
+
+    /**
+     * @codeCoverageIgnore
+     *
+     * @param ClassMetadata<object> $metadata
+     * @param class-string $class
+     */
+    private function addManyToOne(
+        LoadClassMetadataEventArgs $event,
+        ClassMetadata $metadata,
+        string $name,
+        string $class,
+    ): void {
+        if ($metadata->hasAssociation($name)) {
+            return;
+        }
+
+        $namingStrategy = $event->getEntityManager()->getConfiguration()->getNamingStrategy();
+        $referencedColumnName = $event->getEntityManager()->getClassMetadata($class)->getIdentifierColumnNames()[0];
+
+        $metadata->mapManyToOne([
+            'fieldName' => $name,
+            'targetEntity' => $class,
+            'joinColumns' => [
+                [
+                    'name' => $namingStrategy->joinKeyColumnName($name, null), // @phpstan-ignore-line
+                    'referencedColumnName' => $referencedColumnName,
+                    'nullable' => true,
+                    'onDelete' => 'SET NULL',
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @param ClassMetadata<object> $metadata
+     * @param class-string $class
+     */
+    private function addManyToMany(
+        LoadClassMetadataEventArgs $event,
+        ClassMetadata $metadata,
+        string $name,
+        string $class,
+        string $inverseColumnName
+    ): void {
+        if ($metadata->hasAssociation($name)) {
+            return;
+        }
+
+        $namingStrategy = $event->getEntityManager()->getConfiguration()->getNamingStrategy();
+
+        $referencedColumnName = $metadata->getIdentifierColumnNames()[0];
+        $inversedReferencedColumnName = $event->getEntityManager()->getClassMetadata($class)->getIdentifierColumnNames()[0];
+
+        $metadata->mapManyToMany([
+            'fieldName' => $name,
+            'targetEntity' => $class,
+            'joinTable' => [
+                'name' => $this->getRelationTableName($metadata, $name),
+                'joinColumns' => [
+                    [
+                        'name' => $namingStrategy->joinKeyColumnName($metadata->getName(), null),
+                        'referencedColumnName' => $referencedColumnName,
+                        'onDelete' => 'CASCADE',
+                        'onUpdate' => 'CASCADE',
+                    ],
+                ],
+                'inverseJoinColumns' => [
+                    [
+                        'name' => $inverseColumnName,
+                        'referencedColumnName' => $inversedReferencedColumnName,
+                        'onDelete' => 'CASCADE',
+                        'onUpdate' => 'CASCADE',
+                    ],
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @param ClassMetadata<object> $metadata
+     * @param array<string, mixed> $mapping
+     */
+    private function addField(ClassMetadata $metadata, string $name, string $type = 'string', array $mapping = []): void
+    {
+        if ($metadata->hasField($name)) {
+            return;
+        }
+
+        $nullable = true;
+        if ('boolean' === $type) {
+            $nullable = false;
+        }
+
+        $metadata->mapField(\array_merge([
+            'fieldName' => $name,
+            'columnName' => $name,
+            'type' => $type,
+            'nullable' => $nullable,
+        ], $mapping));
+    }
+
+    /**
+     * @param ClassMetadata<object> $metadata
+     * @param list<string> $fields
+     */
+    private function addIndex(ClassMetadata $metadata, string $name, array $fields): void
+    {
+        $builder = new ClassMetadataBuilder($metadata);
+
+        $tableName = $metadata->getTableName();
+
+        $builder->addIndex($fields, 'idx_' . $tableName . '_' . $name);
+    }
+
+    /**
+     * @param ClassMetadata<object> $metadata
+     * @param mixed $mapping object on ORM 3.x, array on ORM 2.x
+     */
+    private function backfillInverseSideDeclared(ClassMetadata $metadata, string $key, mixed $mapping): void
+    {
+        if (\is_array($mapping)) {
+            $fieldName = $mapping['fieldName'] ?? null;
+
+            if (!\is_string($fieldName) || ($mapping['isOwningSide'] ?? true) || isset($mapping['declared'])) {
+                return;
+            }
+
+            $mapping['declared'] = $this->findDeclaringClass($metadata->getName(), $fieldName);
+            /* @phpstan-ignore assign.propertyType */
+            $metadata->associationMappings[$key] = $mapping;
+
+            return;
+        }
+
+        if (!$mapping instanceof InverseSideMapping || null !== $mapping->declared) {
+            return;
+        }
+
+        $mapping->declared = $this->findDeclaringClass($metadata->getName(), $mapping->fieldName);
+    }
+
+    /**
+     * @param class-string $className
+     *
+     * @return class-string
+     */
+    private function findDeclaringClass(string $className, string $propertyName): string
+    {
+        foreach (\class_parents($className) as $parent) {
+            $parentReflection = new \ReflectionClass($parent);
+
+            foreach ($parentReflection->getProperties() as $property) {
+                if ($property->getName() === $propertyName) {
+                    return $parentReflection->getName();
+                }
+            }
+        }
+
+        return $className;
+    }
+
+    /**
+     * @param ClassMetadata<object> $metadata
+     */
+    private function getResourceForeignKeyColumn(ClassMetadata $metadata): ?string
+    {
+        foreach ($metadata->getAssociationMappings() as $mapping) {
+            if (isset($mapping['inversedBy']) && 'dimensionContents' === $mapping['inversedBy']) {
+                $joinColumns = $mapping['joinColumns'] ?? []; // @phpstan-ignore-line
+                $columnName = $joinColumns[0]['name'] ?? null; // @phpstan-ignore-line
+
+                return \is_string($columnName) ? $columnName : null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param ClassMetadata<object> $metadata
+     */
+    private function getRelationTableName(ClassMetadata $metadata, string $relationName): string
+    {
+        $inflector = InflectorFactory::create()->build();
+        $tableNameParts = \explode('_', $metadata->getTableName());
+        $singularName = $inflector->singularize($tableNameParts[\count($tableNameParts) - 1]) . '_';
+        $tableNameParts[\count($tableNameParts) - 1] = $singularName;
+
+        return \implode('_', $tableNameParts) . $inflector->tableize($relationName);
+    }
+}

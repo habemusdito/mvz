@@ -1,0 +1,15 @@
+**/node_modules/
+**/vendor/
+**/flow-typed/
+styleguide/
+**/build/admin/
+
+**/tests/Application/assets
+
+.git/
+.github/
+bin/
+config/
+public/
+templates/
+var/

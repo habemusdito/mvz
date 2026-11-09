@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Render selection handle checked 1`] = `
+<DocumentFragment>
+  <div
+    class="container"
+  >
+    <label
+      class="label"
+      tabindex="-1"
+    >
+      <span
+        class="switch checkbox light"
+      >
+        <input
+          checked=""
+          type="checkbox"
+          value=""
+        />
+        <span>
+          <span
+            aria-label="su-check"
+            class="su-check"
+          />
+        </span>
+      </span>
+    </label>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Render selection handle unchecked 1`] = `
+<DocumentFragment>
+  <div
+    class="container"
+  >
+    <label
+      class="label"
+      tabindex="-1"
+    >
+      <span
+        class="switch checkbox dark"
+      >
+        <input
+          type="checkbox"
+          value=""
+        />
+        <span />
+      </span>
+    </label>
+  </div>
+</DocumentFragment>
+`;

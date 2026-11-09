@@ -1,0 +1,60 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Render active Item 1`] = `
+<div>
+  <button
+    class="item active"
+    type="button"
+  >
+    <span
+      class="icon"
+    >
+      <span
+        aria-label="fa-home"
+        class="fa fa-home icon"
+      />
+    </span>
+    <span>
+      My House
+    </span>
+  </button>
+</div>
+`;
+
+exports[`Render default Item 1`] = `
+<div>
+  <button
+    class="item"
+    type="button"
+  >
+    <span
+      class="icon"
+    />
+    <span>
+      Test Item
+    </span>
+  </button>
+</div>
+`;
+
+exports[`Render disabled Item 1`] = `
+<div>
+  <button
+    class="item active"
+    disabled=""
+    type="button"
+  >
+    <span
+      class="icon"
+    >
+      <span
+        aria-label="fa-home"
+        class="fa fa-home icon"
+      />
+    </span>
+    <span>
+      My Item
+    </span>
+  </button>
+</div>
+`;

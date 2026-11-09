@@ -1,0 +1,74 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Bundle\AudienceTargetingBundle\Rule;
+
+use Sulu\Bundle\AudienceTargetingBundle\Rule\Type\KeyValue;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+class QueryStringRule implements RuleInterface
+{
+    /**
+     * @var RequestStack
+     */
+    private $requestStack;
+
+    /**
+     * @var TranslatorInterface
+     */
+    private $translator;
+
+    /**
+     * @var string
+     */
+    private $urlHeader;
+
+    public function __construct(RequestStack $requestStack, TranslatorInterface $translator, $urlHeader)
+    {
+        $this->requestStack = $requestStack;
+        $this->translator = $translator;
+        $this->urlHeader = $urlHeader;
+    }
+
+    public function evaluate(array $options)
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if ($url = $request->headers->get($this->urlHeader)) {
+            // the URL from the header has precedence over the real URL
+            // the header is set in the target group hit request
+            $request = Request::create($url);
+        }
+
+        $value = $request->query->get($options['parameter']);
+        if (!$value) {
+            return false;
+        }
+
+        return $value == $options['value'];
+    }
+
+    public function getName()
+    {
+        return $this->translator->trans('sulu_audience_targeting.query_string', [], 'admin');
+    }
+
+    public function getType()
+    {
+        return new KeyValue(
+            'parameter',
+            'value',
+            $this->translator->trans('sulu_audience_targeting.query_string_parameter', [], 'admin'),
+            $this->translator->trans('sulu_audience_targeting.query_string_value', [], 'admin')
+        );
+    }
+}

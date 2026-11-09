@@ -1,0 +1,277 @@
+@import '../../containers/Application/colors.scss';
+@import '../../containers/Application/variables.scss';
+@import '../../components/Snackbar/snackbar.scss';
+@import '../../components/Tabs/variables.scss';
+@import '../../components/Toolbar/variables.scss';
+
+$textEditorFontSize: $baseFontSize;
+$textEditorFontFamily: $baseFontFamily;
+$textEditorButtonMinSize: 20px;
+$textEditorBorderRadius: 3px;
+$textEditorBackgroundColor: $silver;
+$textEditorDarkBackgroundColor: $dustyGray;
+$textEditorBorderColor: $textEditorBackgroundColor;
+$textEditorDarkBorderColor: $textEditorDarkBackgroundColor;
+$textEditorAccentColor: $shakespeare;
+$textEditorLightAccentColor: #e5f4f7;
+$textEditorWhiteHover: $mercury;
+$textEditorPanelBackground: $white;
+$textEditorLinkColor: #00f;
+$textEditorRemovedLinkColor: $roman;
+$textEditorUnpublishedLinkColor: $gold;
+
+:global {
+    :root {
+        /* font size */
+        --ck-font-size-base: $textEditorFontSize;
+        --ck-font-face: $textEditorFontFamily;
+        --ck-icon-size: $textEditorFontSize;
+        --ck-content-font-family: $textEditorFontFamily;
+        --ck-content-font-size: $textEditorFontSize;
+
+        /* z-index */
+        --ck-z-default: 0;
+
+        /* focus */
+        --ck-focus-outer-shadow: var(--ck-color-base-border);
+
+        /* shadows */
+        --ck-color-shadow-inner: none;
+        --ck-color-shadow-drop: none;
+        --ck-color-button-default-active-shadow: none;
+        --ck-color-button-on-active-shadow: none;
+
+        /* toolbar */
+        --ck-ui-component-min-height: $textEditorButtonMinSize;
+        --ck-color-toolbar-background: $textEditorBackgroundColor;
+        --ck-color-toolbar-border: $textEditorBorderColor;
+
+        /* borders */
+        --ck-border-radius: $textEditorBorderRadius;
+        --ck-color-base-border: $textEditorBorderColor;
+        --ck-color-focus-border: $textEditorAccentColor;
+
+        /* buttons */
+        --ck-color-button-default-background: transparent;
+        --ck-color-button-default-hover-background: var(--ck-color-button-default-background);
+        --ck-color-button-default-active-background: var(--ck-color-button-default-background);
+        --ck-color-button-on-background: $textEditorDarkBackgroundColor;
+        --ck-color-button-on-color: inherit;
+        --ck-color-button-on-hover-background: var(--ck-color-button-on-background);
+        --ck-color-button-on-active-background: var(--ck-color-button-on-background);
+        --ck-color-split-button-hover-background: transparent;
+        --ck-color-split-button-hover-border: transparent;
+
+        /* panel */
+        --ck-color-panel-background: $textEditorPanelBackground;
+        --ck-color-panel-border: $textEditorDarkBorderColor;
+        --ck-color-base-foreground: $textEditorBackgroundColor;
+
+        /* list */
+        --ck-color-list-button-hover-background: $textEditorWhiteHover;
+        --ck-color-list-button-on-background: $textEditorAccentColor;
+        --ck-color-list-button-on-background-focus: $textEditorAccentColor;
+
+        /* toggle button */
+        --ck-color-switch-button-off-background: $textEditorBackgroundColor;
+        --ck-color-switch-button-on-background: $textEditorAccentColor;
+
+        /* table insert box */
+        --ck-insert-table-dropdown-box-border-active-color: $textEditorAccentColor;
+        --ck-insert-table-dropdown-box-active-background: $textEditorLightAccentColor;
+
+        /* table widget */
+        --ck-color-widget-hover-border: $textEditorBorderColor;
+        --ck-color-widget-blurred-border: $textEditorBorderColor;
+    }
+
+    .ck.ck-editor__top {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+
+        .ck.ck-toolbar {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            padding: 5px 10px;
+
+            &.ck-toolbar_vertical > .ck-toolbar__items > .ck {
+                border-radius: $textEditorBorderRadius !important;
+            }
+        }
+
+        .ck.ck-dropdown > .ck-button.ck-dropdown__button.ck-on {
+            border-radius: $textEditorBorderRadius !important;
+        }
+
+        .ck.ck-dropdown__panel {
+            border-radius: $textEditorBorderRadius !important;
+            border: 1px solid var(--ck-color-button-on-background);
+
+            > .ck.ck-toolbar {
+                border-radius: 2px !important;
+            }
+
+            &.ck-dropdown__panel_se {
+                border-top-left-radius: 0 !important;
+                margin-top: -2px;
+
+                > .ck.ck-toolbar {
+                    border-top-left-radius: 0 !important;
+                }
+            }
+
+            &.ck-dropdown__panel_sw {
+                border-top-right-radius: 0 !important;
+                margin-top: -2px;
+
+                > .ck.ck-toolbar {
+                    border-top-right-radius: 0 !important;
+                }
+            }
+
+            &.ck-dropdown__panel_ne {
+                border-bottom-left-radius: 0 !important;
+                margin-bottom: -4px;
+
+                > .ck.ck-toolbar {
+                    border-bottom-left-radius: 0 !important;
+                }
+            }
+
+            &.ck-dropdown__panel_nw {
+                border-bottom-right-radius: 0 !important;
+                margin-bottom: -4px;
+
+                > .ck.ck-toolbar {
+                    border-bottom-right-radius: 0 !important;
+                }
+            }
+        }
+
+        /* Make the last 5 toolbar items open their dropdown panels on the left side instead of on the right side */
+        .ck.ck-toolbar__items > .ck:nth-last-child(-n + 5) .ck-dropdown__panel_se {
+            border-top-right-radius: 0 !important;
+            border-top-left-radius: $textEditorBorderRadius !important;
+            left: unset !important;
+            right: 0 !important;
+
+            > .ck.ck-toolbar {
+                border-top-right-radius: 0 !important;
+                border-top-left-radius: $textEditorBorderRadius !important;
+            }
+        }
+
+        .ck.ck-heading-dropdown .ck.ck-dropdown__button {
+            border: 1px solid $textEditorDarkBorderColor;
+        }
+
+        .ck.ck-sticky-panel {
+            .ck.ck-sticky-panel__content_sticky {
+                position: static;
+            }
+
+            .ck.ck-sticky-panel__placeholder {
+                max-height: 0;
+                overflow: hidden;
+            }
+        }
+    }
+
+    .ck.ck-balloon-panel.ck-powered-by-balloon {
+        background: transparent !important;
+        z-index: auto !important;
+    }
+
+    .ck.ck-editor {
+        .ck.ck-toolbar__separator {
+            background: none;
+            width: $textEditorButtonMinSize;
+        }
+
+        .ck.ck-content {
+            border-color: $textEditorBackgroundColor !important;
+            font-family: $textEditorFontFamily;
+            font-size: $textEditorFontSize;
+            line-height: 20px;
+            min-height: 100px;
+            padding-bottom: 5px;
+
+            &.ck-focused {
+                border: 1px solid $textEditorBackgroundColor !important;
+            }
+        }
+
+        .ck-widget.table {
+            width: 100%;
+
+            table {
+                width: 100%;
+            }
+        }
+
+        &.disabled {
+            opacity: .5;
+            pointer-events: none;
+        }
+    }
+
+    .ck {
+        /* stylelint-disable selector-type-no-unknown */
+        a,
+        sulu-link {
+            color: $textEditorLinkColor !important;
+            text-decoration: underline !important;
+        }
+
+        sulu-link[sulu-validation-state='removed'] {
+            color: $textEditorRemovedLinkColor !important;
+            text-decoration: line-through !important;
+        }
+
+        sulu-link[sulu-validation-state='unpublished']::before {
+            color: $textEditorUnpublishedLinkColor;
+            content: '•';
+            display: inline-block;
+            font-size: 20px;
+            line-height: $textEditorFontSize;
+            vertical-align: middle;
+        }
+        /* stylelint-enable */
+    }
+
+    .ck-content .sulu-text-part-language {
+        text-decoration: underline dotted;
+        text-underline-offset: 2px;
+
+        /* the span carries the dir of the marked language, so the label ends up right for ltr and left for rtl */
+        &::after {
+            content: attr(lang);
+            display: inline-block; /* keeps the label out of the underline */
+            font-size: 0.6em;
+            font-weight: bold;
+            line-height: 1;
+            margin-inline-start: 2px;
+            text-transform: uppercase;
+            user-select: none;
+            vertical-align: super;
+        }
+    }
+
+    .ck-preview-button {
+        .ck-button__label {
+            cursor: pointer !important;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .ck-link-button {
+        padding: 0 0 0 5px !important;
+    }
+
+    .ck-list__item {
+        min-width: 8em !important;
+    }
+}

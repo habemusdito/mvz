@@ -1,0 +1,23 @@
+.collection-section {
+    display: flex;
+}
+
+.left {
+    display: flex;
+    flex-grow: 1;
+
+    &:hover {
+        > .icons {
+            display: flex;
+            align-items: center;
+        }
+    }
+}
+
+.right {
+    flex-grow: 1;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}

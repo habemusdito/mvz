@@ -1,0 +1,147 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Render a CircularProgressbar 1`] = `
+<div>
+  <div
+    style="width: 100px; height: 100px;"
+  >
+    <svg
+      class="root "
+      data-test-id="CircularProgressbar"
+      viewBox="0 0 100 100"
+    >
+      <circle
+        class="background"
+        cx="50"
+        cy="50"
+        r="50"
+      />
+      <path
+        d="
+      M 50,50
+      m 0,-46
+      a 46,46 0 1 1 0,92
+      a 46,46 0 1 1 0,-92
+    "
+        fill-opacity="0"
+        stroke-width="8"
+        style="stroke-dasharray: 289.02652413026095px 289.02652413026095px; stroke-dashoffset: 0px;"
+      />
+      <path
+        class="path"
+        d="
+      M 50,50
+      m 0,-46
+      a 46,46 0 1 1 0,92
+      a 46,46 0 1 1 0,-92
+    "
+        fill-opacity="0"
+        stroke-width="8"
+        style="stroke-dasharray: 289.02652413026095px 289.02652413026095px; stroke-dashoffset: 115.61060965210439px;"
+      />
+      <text
+        class="text"
+        x="50"
+        y="50"
+      >
+        60%
+      </text>
+    </svg>
+  </div>
+</div>
+`;
+
+exports[`Render a CircularProgressbar in a different size 1`] = `
+<div>
+  <div
+    style="width: 200px; height: 200px;"
+  >
+    <svg
+      class="root "
+      data-test-id="CircularProgressbar"
+      viewBox="0 0 100 100"
+    >
+      <circle
+        class="background"
+        cx="50"
+        cy="50"
+        r="50"
+      />
+      <path
+        d="
+      M 50,50
+      m 0,-46
+      a 46,46 0 1 1 0,92
+      a 46,46 0 1 1 0,-92
+    "
+        fill-opacity="0"
+        stroke-width="8"
+        style="stroke-dasharray: 289.02652413026095px 289.02652413026095px; stroke-dashoffset: 0px;"
+      />
+      <path
+        class="path"
+        d="
+      M 50,50
+      m 0,-46
+      a 46,46 0 1 1 0,92
+      a 46,46 0 1 1 0,-92
+    "
+        fill-opacity="0"
+        stroke-width="8"
+        style="stroke-dasharray: 289.02652413026095px 289.02652413026095px; stroke-dashoffset: 115.61060965210439px;"
+      />
+      <text
+        class="text"
+        x="50"
+        y="50"
+      >
+        60%
+      </text>
+    </svg>
+  </div>
+</div>
+`;
+
+exports[`Render a CircularProgressbar without the progress info in the center 1`] = `
+<div>
+  <div
+    style="width: 100px; height: 100px;"
+  >
+    <svg
+      class="root "
+      data-test-id="CircularProgressbar"
+      viewBox="0 0 100 100"
+    >
+      <circle
+        class="background"
+        cx="50"
+        cy="50"
+        r="50"
+      />
+      <path
+        d="
+      M 50,50
+      m 0,-46
+      a 46,46 0 1 1 0,92
+      a 46,46 0 1 1 0,-92
+    "
+        fill-opacity="0"
+        stroke-width="8"
+        style="stroke-dasharray: 289.02652413026095px 289.02652413026095px; stroke-dashoffset: 0px;"
+      />
+      <path
+        class="path"
+        d="
+      M 50,50
+      m 0,-46
+      a 46,46 0 1 1 0,92
+      a 46,46 0 1 1 0,-92
+    "
+        fill-opacity="0"
+        stroke-width="8"
+        style="stroke-dasharray: 289.02652413026095px 289.02652413026095px; stroke-dashoffset: 115.61060965210439px;"
+      />
+    </svg>
+  </div>
+</div>
+`;

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping http://doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+    <entity name="Sulu\Bundle\SecurityBundle\Entity\AccessControl" table="se_access_controls">
+        <indexes>
+            <index columns="entityId"/>
+            <index columns="entityClass"/>
+            <index columns="entityIdInteger"/>
+            <index columns="idRoles"/>
+        </indexes>
+
+        <id name="id" type="integer" column="id">
+            <generator strategy="AUTO"/>
+        </id>
+
+        <field name="permissions" type="smallint" column="permissions"/>
+        <field name="entityId" type="string" column="entityId" length="36"/>
+        <field name="entityClass" type="string" column="entityClass" length="191"/>
+        <field name="entityIdInteger" type="integer" column="entityIdInteger" nullable="true"/>
+
+        <many-to-one field="role" target-entity="Sulu\Component\Security\Authentication\RoleInterface">
+            <join-column name="idRoles" referenced-column-name="id" on-delete="CASCADE" nullable="false"/>
+        </many-to-one>
+    </entity>
+</doctrine-mapping>

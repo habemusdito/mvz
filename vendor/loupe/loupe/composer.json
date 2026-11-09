@@ -1,0 +1,82 @@
+{
+    "name": "loupe/loupe",
+    "description": "A full text search engine with tokenization, stemming, typo tolerance, filters and geo support based on only PHP and SQLite",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Loupe\\Loupe\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Loupe\\Loupe\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Yanick Witschi",
+            "email": "yanick.witschi@terminal42.ch"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "ext-pdo": "*",
+        "ext-pdo_sqlite": "*",
+        "lib-pdo_sqlite-sqlite": ">= 3.35.0",
+        "ext-mbstring": "*",
+        "doctrine/dbal": "^3.10.2 || ^4.0",
+        "wamania/php-stemmer": "^4.0",
+        "doctrine/lexer": "^2.0 || ^3.0",
+        "mjaschen/phpgeo": "^5.0 || ^6.0",
+        "toflar/state-set-index": "^3.3",
+        "psr/cache": "^2.0 || ^3.0",
+        "psr/log": "^2.0 || ^3.0",
+        "nitotm/efficient-language-detector": "^3.1",
+        "loupe/matcher": "^0.4"
+    },
+    "require-dev": {
+        "phpbench/phpbench": "^1.2",
+        "phpunit/phpunit": "^10.5.58",
+        "symfony/console": "^7.4",
+        "symfony/filesystem": "^7.4",
+        "symfony/process": "^7.4",
+        "terminal42/code-quality-tools": "dev-main"
+    },
+    "scripts": {
+        "tests": "@php vendor/bin/phpunit",
+        "unit-tests": "@php vendor/bin/phpunit --testsuite=unit",
+        "functional-tests": "@php vendor/bin/phpunit --testsuite=functional",
+        "slow-tests": "@php vendor/bin/phpunit --testsuite=slow",
+        "bench": [
+            "@php vendor/bin/phpbench run --report=aggregate --group=query",
+            "@bench-size"
+        ],
+        "bench-index": [
+            "@php vendor/bin/phpbench run --report=aggregate --group=index",
+            "@bench-index-size"
+        ],
+        "bench-browse": [
+            "@php vendor/bin/phpbench run --report=aggregate --group=browse",
+            "@bench-browse-size"
+        ],
+        "bench-size": "@php tests/bin/report-database-size.php var/bench/movies-search/loupe.db",
+        "bench-index-size": "@php tests/bin/report-database-size.php var/bench/movies-index/loupe.db",
+        "bench-browse-size": "@php tests/bin/report-database-size.php var/bench/browse-articles/loupe.db",
+        "cs-fixer": "@php vendor/terminal42/code-quality-tools/tools/ecs/vendor/bin/ecs check src tests --config vendor/terminal42/code-quality-tools/tools/ecs/config.php --fix --ansi",
+        "rector": "@php vendor/terminal42/code-quality-tools/tools/rector/vendor/bin/rector process src tests --config vendor/terminal42/code-quality-tools/tools/rector/config.php --ansi",
+        "phpstan": "@php vendor/terminal42/code-quality-tools/tools/phpstan/vendor/bin/phpstan analyze src tests --configuration vendor/terminal42/code-quality-tools/tools/phpstan/config.php --ansi",
+        "composer-dependencies": "@php vendor/terminal42/code-quality-tools/tools/composer-dependency-analyser/vendor/bin/composer-dependency-analyser --config vendor/terminal42/code-quality-tools/tools/composer-dependency-analyser/config.php",
+        "code-quality": [
+            "@cs-fixer",
+            "@rector",
+            "@phpstan",
+            "@composer-dependencies"
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "terminal42/code-quality-tools": true
+        }
+    }
+}

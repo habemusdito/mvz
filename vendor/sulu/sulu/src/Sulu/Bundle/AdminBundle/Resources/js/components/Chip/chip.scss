@@ -1,0 +1,62 @@
+@import '../../containers/Application/colors.scss';
+
+$chipPrimaryBackgroundColor: $shakespeare;
+$chipPrimaryColor: $white;
+$chipSecondaryBackgroundColor: $wildSand;
+$chipSecondaryColor: $black;
+$chipDisabledBackgroundColor: $silver;
+$chipDisabledColor: $gray;
+
+.chip {
+    border: none;
+    border-radius: 3px;
+    display: inline-block;
+    font-size: 12px;
+    line-height: 18px;
+    padding: 0 10px;
+    position: relative;
+    white-space: nowrap;
+
+    .icon {
+        margin-left: 10px;
+    }
+
+    > * {
+        display: inline-block;
+    }
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+.disabled {
+    background-color: $chipDisabledBackgroundColor;
+    color: $chipDisabledColor;
+}
+
+.primary {
+    &.chip {
+        background-color: $chipPrimaryBackgroundColor;
+        color: $chipPrimaryColor;
+    }
+}
+
+.secondary {
+    &.chip {
+        background-color: $chipSecondaryBackgroundColor;
+        color: $chipSecondaryColor;
+
+        &.disabled {
+            color: $chipDisabledColor;
+        }
+    }
+}
+
+.small {
+    height: 18px;
+}
+
+.medium {
+    height: 30px;
+}

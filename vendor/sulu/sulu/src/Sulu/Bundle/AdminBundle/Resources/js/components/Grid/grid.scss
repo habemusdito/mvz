@@ -1,0 +1,11 @@
+$itemMarginRight: 20px;
+
+.grid {
+    margin-right: -$itemMarginRight;
+
+    &::after {
+        content: '';
+        clear: both;
+        display: block;
+    }
+}

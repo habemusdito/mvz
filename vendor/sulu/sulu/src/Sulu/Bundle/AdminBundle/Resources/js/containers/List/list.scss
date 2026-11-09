@@ -1,0 +1,54 @@
+@import 'sulu-admin-bundle/containers/Application/colors.scss';
+
+$listToolbarHeight: 30px;
+
+.list-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+
+    &.disabled {
+        opacity: .5;
+        pointer-events: none;
+    }
+}
+
+.loader {
+    margin-top: 20px;
+}
+
+.toolbar {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.toolbar-left,
+.toolbar-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    & > * {
+        height: $listToolbarHeight;
+        margin-right: 10px;
+        width: auto;
+
+        &:last-child {
+            margin-right: 0;
+        }
+    }
+}
+
+.toolbar-left {
+    margin-right: auto;
+}
+
+.toolbar-right {
+    margin-left: auto;
+}

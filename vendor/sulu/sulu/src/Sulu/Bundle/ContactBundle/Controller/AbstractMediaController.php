@@ -1,0 +1,254 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Bundle\ContactBundle\Controller;
+
+use Doctrine\ORM\EntityManagerInterface;
+use FOS\RestBundle\View\ViewHandlerInterface;
+use Sulu\Bundle\ContactBundle\Contact\AbstractContactManager;
+use Sulu\Bundle\ContactBundle\Entity\AccountInterface;
+use Sulu\Bundle\ContactBundle\Entity\ContactInterface;
+use Sulu\Bundle\MediaBundle\Api\Media;
+use Sulu\Bundle\MediaBundle\Entity\MediaRepositoryInterface;
+use Sulu\Bundle\MediaBundle\Media\ListBuilderFactory\MediaListBuilderFactory;
+use Sulu\Bundle\MediaBundle\Media\ListRepresentationFactory\MediaListRepresentationFactory;
+use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
+use Sulu\Component\Rest\AbstractRestController;
+use Sulu\Component\Rest\Exception\EntityNotFoundException;
+use Sulu\Component\Rest\Exception\RestException;
+use Sulu\Component\Rest\ListBuilder\Doctrine\DoctrineListBuilderFactoryInterface;
+use Sulu\Component\Rest\ListBuilder\Doctrine\FieldDescriptor\DoctrineFieldDescriptor;
+use Sulu\Component\Rest\ListBuilder\Doctrine\FieldDescriptor\DoctrineJoinDescriptor;
+use Sulu\Component\Rest\ListBuilder\FieldDescriptorInterface;
+use Sulu\Component\Rest\ListBuilder\Metadata\FieldDescriptorFactoryInterface;
+use Sulu\Component\Rest\RestHelperInterface;
+use Sulu\Component\Security\Authentication\UserInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+
+/**
+ * Makes accounts available through a REST API.
+ */
+abstract class AbstractMediaController extends AbstractRestController
+{
+    /** @var class-string */
+    protected static $collectionEntityName = \Sulu\Bundle\MediaBundle\Entity\Collection::class;
+
+    /** @var class-string */
+    protected static $fileVersionEntityName = \Sulu\Bundle\MediaBundle\Entity\FileVersion::class;
+
+    /** @var class-string */
+    protected static $fileEntityName = \Sulu\Bundle\MediaBundle\Entity\File::class;
+
+    /** @var class-string */
+    protected static $fileVersionMetaEntityName = \Sulu\Bundle\MediaBundle\Entity\FileVersionMeta::class;
+
+    /** @var string */
+    protected static $mediaEntityKey = 'media';
+
+    protected $fieldDescriptors = null;
+
+    /**
+     * @param class-string $mediaClass
+     */
+    public function __construct(
+        ViewHandlerInterface $viewHandler,
+        TokenStorageInterface $tokenStorage,
+        private RestHelperInterface $restHelper,
+        private DoctrineListBuilderFactoryInterface $listBuilderFactory,
+        private EntityManagerInterface $entityManager,
+        private MediaRepositoryInterface $mediaRepository,
+        private MediaManagerInterface $mediaManager,
+        private string $mediaClass,
+        private MediaListBuilderFactory $mediaListBuilderFactory,
+        private MediaListRepresentationFactory $mediaListRepresentationFactory,
+        private FieldDescriptorFactoryInterface $fieldDescriptorFactory
+    ) {
+        parent::__construct($viewHandler, $tokenStorage);
+    }
+
+    /**
+     * Adds a relation between a media and the entity.
+     *
+     * @param class-string<ContactInterface|AccountInterface> $entityName
+     * @param string $id
+     * @param string $mediaId
+     * @param callable|null $dispatchDomainEventCallback
+     *
+     * @return Media
+     */
+    protected function addMediaToEntity($entityName, $id, $mediaId, $dispatchDomainEventCallback = null)
+    {
+        try {
+            $em = $this->entityManager;
+            $entity = $em->getRepository($entityName)->find($id);
+            $media = $this->mediaRepository->find($mediaId);
+
+            if (!$entity) {
+                throw new EntityNotFoundException($entityName, $id);
+            }
+
+            if (!$media) {
+                throw new EntityNotFoundException($this->mediaClass, $mediaId);
+            }
+
+            if ($entity->getMedias()->contains($media)) {
+                throw new RestException('Relation already exists');
+            }
+
+            $entity->addMedia($media);
+
+            if (null !== $dispatchDomainEventCallback) {
+                $dispatchDomainEventCallback($entity, $media);
+            }
+
+            $em->flush();
+
+            $view = $this->view(
+                new Media(
+                    $media,
+                    $this->getUser()->getLocale(),
+                    null
+                ),
+                200
+            );
+        } catch (EntityNotFoundException $enfe) {
+            $view = $this->view($enfe->toArray(), 404);
+        } catch (RestException $exc) {
+            $view = $this->view($exc->toArray(), 400);
+        } catch (\Exception $e) {
+            $view = $this->view($e->getMessage(), 400);
+        }
+
+        return $this->handleView($view);
+    }
+
+    /**
+     * Removes a media from the relation with an entity.
+     *
+     * @param class-string<ContactInterface|AccountInterface> $entityName
+     * @param string $id
+     * @param string $mediaId
+     * @param callable|null $dispatchDomainEventCallback
+     *
+     * @return Response
+     */
+    protected function removeMediaFromEntity($entityName, $id, $mediaId, $dispatchDomainEventCallback = null)
+    {
+        try {
+            $delete = function() use ($entityName, $id, $mediaId, $dispatchDomainEventCallback) {
+                $entity = $this->entityManager->getRepository($entityName)->find($id);
+                $media = $this->mediaRepository->find($mediaId);
+
+                if (!$entity) {
+                    throw new EntityNotFoundException($entityName, $id);
+                }
+
+                if (!$media) {
+                    throw new EntityNotFoundException($this->mediaClass, $mediaId);
+                }
+
+                if (!$entity->getMedias()->contains($media)) {
+                    throw new RestException(
+                        'Relation between ' . $entityName .
+                        ' and ' . $this->mediaClass . ' with id ' . $mediaId . ' does not exists!'
+                    );
+                }
+
+                $entity->removeMedia($media);
+
+                if (null !== $dispatchDomainEventCallback) {
+                    $dispatchDomainEventCallback($entity, $media);
+                }
+
+                $this->entityManager->flush();
+            };
+
+            $view = $this->responseDelete($id, $delete);
+        } catch (EntityNotFoundException $enfe) {
+            $view = $this->view($enfe->toArray(), 404);
+        } catch (RestException $exc) {
+            $view = $this->view($exc->toArray(), 400);
+        } catch (\Exception $e) {
+            $view = $this->view($e->getMessage(), 400);
+        }
+
+        return $this->handleView($view);
+    }
+
+    /**
+     * Returns a view containing all media of an entity.
+     *
+     * @param class-string $entityName
+     * @param string $routeName
+     * @param Request $request
+     *
+     * @return Response
+     */
+    protected function getMultipleView($entityName, $routeName, AbstractContactManager $contactManager, $contactId, $request)
+    {
+        try {
+            /** @var UserInterface $user */
+            $user = $this->getUser();
+            $locale = $this->getUser()->getLocale();
+
+            $fieldDescriptors = $this->fieldDescriptorFactory->getFieldDescriptors('media');
+
+            $fieldDescriptors['contactId'] = new DoctrineFieldDescriptor(
+                'id',
+                'contactId',
+                $entityName,
+                null,
+                [
+                    $entityName => new DoctrineJoinDescriptor(
+                        $entityName,
+                        $entityName,
+                        $entityName . '.id = :contactId'
+                    ),
+                    static::$mediaEntityKey => new DoctrineJoinDescriptor(
+                        static::$mediaEntityKey,
+                        $entityName . '.medias',
+                        static::$mediaEntityKey . '.id = ' . $this->mediaClass . '.id',
+                        DoctrineJoinDescriptor::JOIN_METHOD_INNER
+                    ),
+                ],
+                FieldDescriptorInterface::VISIBILITY_NEVER,
+                FieldDescriptorInterface::SEARCHABILITY_NEVER
+            );
+
+            $listBuilder = $this->mediaListBuilderFactory->getListBuilder(
+                $fieldDescriptors,
+                $user,
+                [],
+                !$request->query->get('sortBy'),
+                null
+            );
+
+            $listBuilder->setParameter('contactId', $contactId);
+            $listBuilder->where($fieldDescriptors['contactId'], $contactId);
+
+            $listRepresentation = $this->mediaListRepresentationFactory->getListRepresentation(
+                $listBuilder,
+                $locale,
+                static::$mediaEntityKey,
+                $routeName,
+                \array_merge(['contactId' => $contactId], $request->query->all())
+            );
+
+            $view = $this->view($listRepresentation, 200);
+        } catch (EntityNotFoundException $e) {
+            $view = $this->view($e->toArray(), 404);
+        }
+
+        return $this->handleView($view);
+    }
+}

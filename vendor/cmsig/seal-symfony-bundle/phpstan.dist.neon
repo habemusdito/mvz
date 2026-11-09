@@ -1,0 +1,9 @@
+includes:
+    - ../../phpstan.dist.neon
+
+parameters:
+    paths:
+        - src
+        - config
+    excludePaths:
+        - vendor/*

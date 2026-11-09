@@ -1,0 +1,69 @@
+{
+    "name": "sulu/sulu-rector",
+    "type": "rector-extension",
+    "license": "MIT",
+    "description": "Rector upgrades rules for Sulu CMS",
+    "keywords": [
+        "Upgrade",
+        "Sulu CMS"
+    ],
+    "require": {
+        "php": "^8.2",
+        "rector/rector": "^2.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.6",
+        "jackalope/jackalope-doctrine-dbal": "^1.7",
+        "phpstan/extension-installer": "^1.1",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpstan/phpstan-webmozart-assert": "^2.0",
+        "phpunit/phpunit": "^9.5.20",
+        "sulu/sulu": "^2.6@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sulu\\Rector\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Sulu\\Rector\\Tests\\": "tests",
+            "Sulu\\Rector\\Utils\\": "utils"
+        },
+        "classmap": [
+            "stubs"
+        ]
+    },
+    "scripts": {
+        "lint": [
+            "@php-cs",
+            "@lint-composer",
+            "@lint-rector",
+            "@phpstan"
+        ],
+        "fix": [
+            "@rector",
+            "@php-cs-fixer"
+        ],
+        "lint-rector": "@php vendor/bin/rector process --dry-run",
+        "rector": "@php vendor/bin/rector process",
+        "lint-composer": "@composer validate --strict",
+        "phpstan": "@php vendor/bin/phpstan analyze",
+        "php-cs": "@php vendor/bin/php-cs-fixer fix --verbose --diff --dry-run",
+        "php-cs-fixer": "@php vendor/bin/php-cs-fixer fix",
+        "test": "@php vendor/bin/phpunit"
+    },
+    "minimum-stability": "dev",
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "rector/extension-installer": true,
+            "cweagans/composer-patches": true,
+            "phpstan/extension-installer": true,
+            "php-http/discovery": true
+        }
+    }
+}

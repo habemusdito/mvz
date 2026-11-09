@@ -1,0 +1,47 @@
+{% apply spaceless %}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns:xhtml="http://www.w3.org/1999/xhtml" {% block namespaces %}xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"{% endblock %}>
+    {% for entry in entries %}
+        {% set location = entry.loc %}
+
+        {% if domain in location %}
+            <url>
+                {% block url %}
+                    {% block loc %}
+                        <loc>{{ location }}</loc>
+                    {% endblock %}
+
+                    {% block lastmod %}
+                        {% if entry.lastmod %}
+                            <lastmod>{{ entry.lastmod|date('Y-m-d') }}</lastmod>
+                        {% endif %}
+                    {% endblock %}
+
+                    {% block changefreq %}
+                        {% if entry.changefreq %}
+                            <changefreq>{{ entry.changefreq }}</changefreq>
+                        {% endif %}
+                    {% endblock %}
+
+                    {% block priority %}
+                        {% if entry.priority %}
+                            <priority>{{ entry.priority }}</priority>
+                        {% endif %}
+                    {% endblock %}
+
+                    {% block alternateLinks %}
+                        {% if entry.alternateLinks|length > 1 %}
+                            {% for alternateLink in entry.alternateLinks %}
+                                {% set href = alternateLink.href %}
+                                {% if href is not empty and domain in href %}
+                                    <xhtml:link rel="alternate" hreflang="{{ alternateLink.locale|replace({'_': '-'}) }}" href="{{ href }}"/>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    {% endblock %}
+                {% endblock %}
+            </url>
+        {% endif %}
+    {% endfor %}
+</urlset>
+{% endapply %}

@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Return JSX for simple string 1`] = `
+<p>
+  Test
+
+</p>
+`;
+
+exports[`Return null for everything expect a string 1`] = `null`;
+
+exports[`Return truncated JSX for long string 1`] = `
+<p>
+  cccccccccccccccccccccccccccccccccccccccccccccccccc...
+</p>
+`;

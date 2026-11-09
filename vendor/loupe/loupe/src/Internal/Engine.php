@@ -1,0 +1,519 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Loupe\Loupe\Internal;
+
+use Composer\InstalledVersions;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception;
+use Loupe\Loupe\BrowseParameters;
+use Loupe\Loupe\BrowseResult;
+use Loupe\Loupe\Configuration;
+use Loupe\Loupe\Exception\InvalidDocumentException;
+use Loupe\Loupe\Indexing\DocumentSourceInterface;
+use Loupe\Loupe\Internal\Cache\NamespacedCachePool;
+use Loupe\Loupe\Internal\Filter\Parser;
+use Loupe\Loupe\Internal\Index\BulkUpserter\BulkUpserterFactory;
+use Loupe\Loupe\Internal\Index\Indexer;
+use Loupe\Loupe\Internal\Index\IndexInfo;
+use Loupe\Loupe\Internal\LanguageDetection\NitotmLanguageDetector;
+use Loupe\Loupe\Internal\LanguageDetection\PreselectedLanguageDetector;
+use Loupe\Loupe\Internal\Search\Searcher;
+use Loupe\Loupe\Internal\Search\Sorting\Relevance;
+use Loupe\Loupe\Internal\StateSetIndex\CachedStateSetIndex;
+use Loupe\Loupe\Internal\StateSetIndex\DefaultStateSetIndex;
+use Loupe\Loupe\Internal\StateSetIndex\StateSet;
+use Loupe\Loupe\Internal\StateSetIndex\StateSetIndexInterface;
+use Loupe\Loupe\Internal\Tokenizer\Tokenizer;
+use Loupe\Loupe\LoupeFactory;
+use Loupe\Loupe\SearchParameters;
+use Loupe\Loupe\SearchResult;
+use Loupe\Matcher\Formatter;
+use Loupe\Matcher\Matcher;
+use Loupe\Matcher\StopWords\InMemoryStopWords;
+use Loupe\Matcher\StopWords\StopWordsInterface;
+use Pdo\Sqlite;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
+use Toflar\StateSetIndex\Alphabet\Utf8Alphabet;
+use Toflar\StateSetIndex\Config;
+use Toflar\StateSetIndex\DataStore\NullDataStore;
+use Toflar\StateSetIndex\StateSetIndex;
+
+class Engine
+{
+    public const VERSION = '0.13.4'; // Increase this whenever a re-index of all documents is needed
+
+    private const SQLITE_FUNCTION_CACHE_MAX_ENTRIES = 100000;
+
+    private const DEPENDENCY_HASH_RELEVANT_PACKAGES = [
+        'wamania/php-stemmer', // Stemming algorithms might change
+        'toflar/state-set-index', // State Set Index bugfixes might cause indexed and queried state mismatches
+        'nitotm/efficient-language-detector', // Detecting the language affects the tokenization step
+        'loupe/matcher', // This contains the core tokenization logic
+    ];
+
+    private readonly BulkUpserterFactory $bulkUpserterFactory;
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $cache = [];
+
+    private readonly Parser $filterParser;
+
+    private readonly Formatter $formatter;
+
+    private readonly Indexer $indexer;
+
+    private readonly IndexInfo $indexInfo;
+
+    private CacheItemPoolInterface|null $namespacedQueryCache = null;
+
+    private StateSetIndexInterface $stateSetIndex;
+
+    private readonly StopWordsInterface $stopwords;
+
+    private readonly TicketHandler $ticketHandler;
+
+    private Tokenizer|null $tokenizer = null;
+
+    public function __construct(
+        private readonly ConnectionPool $connectionPool,
+        private readonly Configuration $configuration,
+        private readonly LoggerInterface $logger,
+        private readonly string|null $dataDir = null,
+    ) {
+        $this->indexInfo = new IndexInfo($this);
+        $this->stateSetIndex = $this->createStateSetIndex(new StateSet($this));
+        $this->ticketHandler = new TicketHandler($this->connectionPool, $this->getLogger());
+        $this->indexer = new Indexer($this, $this->ticketHandler);
+        $this->stopwords = new InMemoryStopWords($this->configuration->getStopWords());
+        $this->formatter = new Formatter(new Matcher($this->getTokenizer(), $this->stopwords));
+        $this->filterParser = new Parser($this);
+        $this->bulkUpserterFactory = new BulkUpserterFactory($this->connectionPool);
+
+        $this->registerSQLiteFunctions($this->connectionPool->loupeConnection);
+    }
+
+    /**
+     * @param array<array<string, mixed>>|DocumentSourceInterface $documents
+     *
+     * @throws InvalidDocumentException
+     */
+    public function addDocuments(DocumentSourceInterface|array $documents): self
+    {
+        if (\is_array($documents) && [] === $documents) {
+            return $this;
+        }
+
+        $this->executeIndexOperation(
+            function () use ($documents): void {
+                $this->indexer->addDocuments($documents);
+            },
+        );
+
+        return $this;
+    }
+
+    public function browse(BrowseParameters $parameters): BrowseResult
+    {
+        if ($this->getIndexInfo()->needsSetup()) {
+            return BrowseResult::createEmptyFromBrowseParameters($parameters);
+        }
+
+        $this->maybeWrapStateSetIndexWithCache();
+
+        try {
+            return (new Searcher($this, $this->filterParser, $parameters))->fetchResult();
+        } catch (Exception $exception) {
+            // If we need a re-index (e.g. schema has changed via an update from an old to a newer Loupe version)
+            // we return an empty result. Otherwise, we want to see the exception
+            if ($this->needsReindex()) {
+                return BrowseResult::createEmptyFromBrowseParameters($parameters);
+            }
+
+            throw $exception;
+        }
+    }
+
+    public function countDocuments(): int
+    {
+        if ($this->getIndexInfo()->needsSetup()) {
+            return 0;
+        }
+
+        return (int) $this->getConnection()->createQueryBuilder()
+            ->select('COUNT(*)')
+            ->from(IndexInfo::TABLE_NAME_DOCUMENTS)
+            ->fetchOne()
+        ;
+    }
+
+    public function deleteAllDocuments(): self
+    {
+        $this->executeIndexOperation(
+            function (): void {
+                $this->indexer->deleteAllDocuments();
+            },
+        );
+
+        return $this;
+    }
+
+    /**
+     * @param array<int|string> $ids
+     */
+    public function deleteDocuments(array $ids): self
+    {
+        $this->executeIndexOperation(
+            function () use ($ids): void {
+                $this->indexer->deleteDocuments($ids);
+            },
+        );
+
+        return $this;
+    }
+
+    public function getBulkUpserterFactory(): BulkUpserterFactory
+    {
+        return $this->bulkUpserterFactory;
+    }
+
+    public function getConfiguration(): Configuration
+    {
+        return $this->configuration;
+    }
+
+    public function getConnection(): Connection
+    {
+        return $this->connectionPool->loupeConnection;
+    }
+
+    public function getDataDir(): string|null
+    {
+        return $this->dataDir;
+    }
+
+    public function getDependencyHash(): string
+    {
+        $hash = [];
+
+        if (!class_exists(InstalledVersions::class)) {
+            return 'none';
+        }
+
+        foreach (self::DEPENDENCY_HASH_RELEVANT_PACKAGES as $package) {
+            $hash[] = InstalledVersions::getVersion($package);
+        }
+
+        return hash('sha256', implode(';', $hash));
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getDocument(int|string $identifier): array|null
+    {
+        if ($this->getIndexInfo()->needsSetup()) {
+            return null;
+        }
+
+        $document = $this->getConnection()
+            ->fetchOne(
+                \sprintf('SELECT _document FROM %s WHERE _user_id = :id', IndexInfo::TABLE_NAME_DOCUMENTS),
+                [
+                    'id' => LoupeTypes::convertToString($identifier),
+                ],
+            )
+        ;
+
+        if ($document) {
+            return Util::decodeJson($document);
+        }
+
+        return null;
+    }
+
+    public function getFormatter(): Formatter
+    {
+        return $this->formatter;
+    }
+
+    public function getIndexer(): Indexer
+    {
+        return $this->indexer;
+    }
+
+    public function getIndexInfo(): IndexInfo
+    {
+        return $this->indexInfo;
+    }
+
+    public function getLogger(): LoggerInterface
+    {
+        return $this->logger;
+    }
+
+    public function getQueryCache(): CacheItemPoolInterface|null
+    {
+        if ($this->namespacedQueryCache instanceof CacheItemPoolInterface) {
+            return $this->namespacedQueryCache;
+        }
+
+        $queryCache = $this->configuration->getQueryCache();
+        if (null === $queryCache) {
+            return null;
+        }
+
+        return $this->namespacedQueryCache = new NamespacedCachePool(
+            $queryCache,
+            $this->getIndexInfo()->getIndexUid(),
+        );
+    }
+
+    public function getStateSetIndex(): StateSetIndexInterface
+    {
+        return $this->stateSetIndex;
+    }
+
+    public function getStopWords(): StopWordsInterface
+    {
+        return $this->stopwords;
+    }
+
+    public function getTokenizer(): Tokenizer
+    {
+        if ($this->tokenizer instanceof Tokenizer) {
+            return $this->tokenizer;
+        }
+
+        $languages = $this->getConfiguration()->getLanguages();
+
+        // Fast route if you configured only one language
+        if (1 === \count($languages)) {
+            $languageDetector = new PreselectedLanguageDetector($languages[0]);
+        } else {
+            $languageDetector = new NitotmLanguageDetector($languages);
+        }
+
+        return $this->tokenizer = new Tokenizer($this, $languageDetector);
+    }
+
+    public function needsReindex(): bool
+    {
+        // If nothing hasn't been indexed yet, by definition it is not a "re-index".
+        if ($this->getIndexInfo()->needsSetup()) {
+            return false;
+        }
+
+        if (self::VERSION !== $this->getIndexInfo()->getEngineVersion()) {
+            return true;
+        }
+
+        if ($this->getIndexInfo()->getConfigHash() !== $this->getConfiguration()->getIndexHash()) {
+            return true;
+        }
+
+        if ($this->getIndexInfo()->getDependencyHash() !== $this->getDependencyHash()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function search(SearchParameters $parameters): SearchResult
+    {
+        if ($this->getIndexInfo()->needsSetup()) {
+            return SearchResult::createEmptyFromSearchParameters($parameters);
+        }
+
+        $this->maybeWrapStateSetIndexWithCache();
+
+        try {
+            return (new Searcher($this, $this->filterParser, $parameters))->fetchResult();
+        } catch (Exception $exception) {
+            // If we need a re-index (e.g. schema has changed via an update from an old to a newer Loupe version)
+            // we return an empty result. Otherwise, we want to see the exception
+            if ($this->needsReindex()) {
+                return SearchResult::createEmptyFromSearchParameters($parameters);
+            }
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * Returns the approx. size in bytes.
+     */
+    public function size(): int
+    {
+        return (int) $this->getConnection()
+            ->executeQuery('SELECT (SELECT page_count FROM pragma_page_count) * (SELECT page_size FROM pragma_page_size)')
+            ->fetchOne()
+        ;
+    }
+
+    private function executeIndexOperation(callable $operation): void
+    {
+        $this->ticketHandler->claimTicket();
+        $operationSucceeded = false;
+
+        try {
+            $this->getConnection()->executeStatement('PRAGMA cache_size = -'.LoupeFactory::SQLITE_INDEX_CACHE_SIZE);
+            $this->getConnection()->executeStatement('PRAGMA shrink_memory');
+            $operation();
+            $operationSucceeded = true;
+        } finally {
+            try {
+                $this->getConnection()->executeStatement('PRAGMA cache_size = -'.LoupeFactory::SQLITE_SEARCH_CACHE_SIZE);
+            } finally {
+                if ($operationSucceeded) {
+                    $this->ticketHandler->release();
+                } else {
+                    $this->abortIndexOperation();
+                }
+            }
+        }
+    }
+
+    private function abortIndexOperation(): void
+    {
+        try {
+            $this->ticketHandler->abort();
+        } finally {
+            $this->indexer->discardPendingChanges();
+            $this->indexInfo->reset();
+            $stateSet = new StateSet($this);
+            $stateSet->reset();
+            $this->stateSetIndex = $this->createStateSetIndex($stateSet);
+        }
+    }
+
+    private function createStateSetIndex(StateSet $stateSet): StateSetIndexInterface
+    {
+        $stateSetIndex = new StateSetIndex(
+            new Config(
+                $this->configuration->getTypoTolerance()->getIndexLength(),
+                $this->configuration->getTypoTolerance()->getAlphabetSize(),
+            ),
+            new Utf8Alphabet(),
+            $stateSet,
+            new NullDataStore(),
+        );
+
+        return new DefaultStateSetIndex($stateSetIndex);
+    }
+
+    private function maybeWrapStateSetIndexWithCache(): void
+    {
+        if ($this->stateSetIndex instanceof CachedStateSetIndex) {
+            return;
+        }
+
+        if ($this->indexInfo->needsSetup()) {
+            return;
+        }
+        $queryCache = $this->getQueryCache();
+        if (null === $queryCache) {
+            return;
+        }
+
+        $this->stateSetIndex = new CachedStateSetIndex(
+            $this->stateSetIndex,
+            $this->configuration->getTypoTolerance(),
+            $queryCache,
+        );
+    }
+
+    private function registerSQLiteFunctions(Connection $connection): void
+    {
+        $functions = [
+            'loupe_max_levenshtein' => [
+                'callback' => [Levenshtein::class, 'maxLevenshtein'],
+                'numArgs' => 4,
+            ],
+            'loupe_levensthein' => [
+                'callback' => [Levenshtein::class, 'damerauLevenshtein'],
+                'numArgs' => 3,
+            ],
+            'loupe_geo_distance' => [
+                'callback' => [Geo::class, 'geoDistance'],
+                'numArgs' => 4,
+            ],
+            'loupe_relevance' => [
+                'callback' => [Relevance::class, 'fromQuery'],
+                'numArgs' => 3,
+            ],
+        ];
+
+        foreach ($functions as $functionName => $function) {
+            $nativeConnection = $connection->getNativeConnection();
+
+            // PHP 8.4+
+            if (class_exists(Sqlite::class) && $nativeConnection instanceof Sqlite) {
+                $nativeConnection->createFunction(
+                    $functionName,
+                    $this->wrapSQLiteMethodForCache($functionName, $function['callback']),
+                    $function['numArgs'],
+                );
+            } elseif ($nativeConnection instanceof \PDO) {
+                $nativeConnection->sqliteCreateFunction(
+                    $functionName,
+                    $this->wrapSQLiteMethodForCache($functionName, $function['callback']),
+                    $function['numArgs'],
+                );
+            } else {
+                throw new \LogicException('This here should not happen.');
+            }
+        }
+    }
+
+    private function wrapSQLiteMethodForCache(string $prefix, callable $callback): \Closure
+    {
+        if ('loupe_relevance' === $prefix) {
+            return $this->wrapRelevanceForCache($callback);
+        }
+
+        return function () use ($prefix, $callback) {
+            $args = \func_get_args();
+            $cacheKey = $prefix.':'.implode('--', $args);
+            $cachedValue = $this->cache[$cacheKey] ?? null;
+
+            if (null !== $cachedValue) {
+                return $cachedValue;
+            }
+
+            $this->clearSQLiteFunctionCacheIfNeeded();
+
+            return $this->cache[$cacheKey] = $callback(...$args);
+        };
+    }
+
+    private function wrapRelevanceForCache(callable $callback): \Closure
+    {
+        // The configuration is immutable for an Engine instance, so only the per-document positions vary.
+        return function (string $searchableAttributes, string $rankingRules, string $termPositions) use ($callback): float {
+            $cacheKey = 'loupe_relevance:'.$termPositions;
+            $cachedValue = $this->cache[$cacheKey] ?? null;
+
+            if (null !== $cachedValue) {
+                return $cachedValue;
+            }
+
+            $this->clearSQLiteFunctionCacheIfNeeded();
+
+            return $this->cache[$cacheKey] = $callback($searchableAttributes, $rankingRules, $termPositions);
+        };
+    }
+
+    private function clearSQLiteFunctionCacheIfNeeded(): void
+    {
+        if (\count($this->cache) < self::SQLITE_FUNCTION_CACHE_MAX_ENTRIES) {
+            return;
+        }
+
+        $this->cache = [];
+    }
+}

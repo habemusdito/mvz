@@ -1,0 +1,270 @@
+// @flow
+import log from 'loglevel';
+import {ResourceFormStore} from '../../../../containers/Form';
+import ResourceRequester from '../../../../services/ResourceRequester';
+import ResourceStore from '../../../../stores/ResourceStore';
+import Router from '../../../../services/Router';
+import Form from '../../../../views/Form';
+import SetUnpublishedToolbarAction from '../../toolbarActions/SetUnpublishedToolbarAction';
+
+jest.mock('loglevel', () => ({
+    warn: jest.fn(),
+}));
+
+jest.mock('../../../../utils/Translator');
+
+jest.mock('../../../../stores/ResourceStore', () => jest.fn(function(resourceKey, id, observableOptions) {
+    this.id = id;
+    this.data = {};
+    this.observableOptions = observableOptions;
+    this.locale = {
+        get: jest.fn(),
+    };
+}));
+
+jest.mock('../../../../services/ResourceRequester', () => ({
+    post: jest.fn(),
+}));
+
+jest.mock('../../../../containers/Form/stores/ResourceFormStore', () => (
+    class {
+        resourceStore;
+        options = {};
+
+        constructor(resourceStore) {
+            this.resourceStore = resourceStore;
+        }
+
+        get id() {
+            return this.resourceStore.id;
+        }
+
+        get locale() {
+            return this.resourceStore.locale;
+        }
+
+        get data() {
+            return this.resourceStore.data;
+        }
+
+        delete = jest.fn();
+        changeMultiple = jest.fn();
+    })
+);
+
+jest.mock('../../../../services/Router', () => jest.fn(function() {
+    this.navigate = jest.fn();
+    this.route = {
+        options: {},
+    };
+}));
+
+jest.mock('../../../../views/Form', () => jest.fn(function() {
+    this.submit = jest.fn();
+    this.showSuccessSnackbar = jest.fn();
+}));
+
+function createSetUnpublishedToolbarAction(options = {}) {
+    const resourceStore = new ResourceStore('test');
+    const formStore = new ResourceFormStore(resourceStore, 'test');
+    const router = new Router({});
+    const form = new Form({
+        locales: [],
+        resourceStore,
+        route: router.route,
+        router,
+    });
+
+    return new SetUnpublishedToolbarAction(formStore, form, router, [], options, resourceStore);
+}
+
+function getDialogProps(setUnpublishedToolbarAction: any): Object {
+    const node = setUnpublishedToolbarAction.getNode();
+
+    if (!node) {
+        throw new Error('The unpublish dialog node should be rendered.');
+    }
+
+    return node.props;
+}
+
+test('Return enabled item config', () => {
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction();
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.id = 5;
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.data.published = true;
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.data.publishedState = false;
+
+    expect(setUnpublishedToolbarAction.getToolbarItemConfig()).toEqual(expect.objectContaining({
+        disabled: false,
+        label: 'sulu_page.unpublish',
+    }));
+});
+
+test('Return item config if passed visible_condition is met', () => {
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction({visible_condition: '_permission.edit'});
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.data._permission = {edit: true};
+
+    const toolbarItemConfig = setUnpublishedToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    expect(toolbarItemConfig).toEqual(expect.objectContaining({
+        label: 'sulu_page.unpublish',
+    }));
+});
+
+test('Return empty item config if deprecated display_condition is not met', () => {
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction({display_condition: '_permission.live'});
+
+    const toolbarItemConfig = setUnpublishedToolbarAction.getToolbarItemConfig();
+
+    expect(toolbarItemConfig).toEqual(undefined);
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('The "display_condition" option is deprecated'));
+});
+
+test('Return empty item config if passed visible_condition is not met', () => {
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction({visible_condition: '_permission.live'});
+
+    const toolbarItemConfig = setUnpublishedToolbarAction.getToolbarItemConfig();
+
+    expect(toolbarItemConfig).toEqual(undefined);
+    expect(log.warn).not.toHaveBeenCalled();
+});
+
+test('Return disabled delete draft and unpublish items when page is not published', () => {
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction();
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.id = 5;
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.data.published = false;
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.data.publishedState = false;
+
+    const toolbarItemConfig = setUnpublishedToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    expect(toolbarItemConfig).toEqual(expect.objectContaining({
+        disabled: true,
+        label: 'sulu_page.unpublish',
+    }));
+});
+
+test('Return disabled delete draft item when page has no draft', () => {
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction();
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.id = 5;
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.data.published = true;
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.data.publishedState = true;
+
+    const toolbarItemConfig = setUnpublishedToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    expect(toolbarItemConfig).toEqual(expect.objectContaining({
+        disabled: false,
+        label: 'sulu_page.unpublish',
+    }));
+});
+
+test('Return disabled item config', () => {
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction();
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.id = undefined;
+
+    expect(setUnpublishedToolbarAction.getToolbarItemConfig()).toEqual(expect.objectContaining({
+        disabled: true,
+        label: 'sulu_page.unpublish',
+    }));
+});
+
+test('Return no dialog if no id is set', () => {
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction();
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.id = undefined;
+
+    expect(setUnpublishedToolbarAction.getNode()).toEqual(null);
+});
+
+test('Close dialog when onClose from unpublish dialog is called', () => {
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction();
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.id = 3;
+    // $FlowFixMe
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.locale.get.mockReturnValue('en');
+    setUnpublishedToolbarAction.resourceFormStore.options.webspace = 'sulu_io';
+
+    const toolbarItemConfig = setUnpublishedToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    const clickHandler = toolbarItemConfig.onClick;
+    if (!clickHandler) {
+        throw new Error('A onClick callback should be registered on the unpublish option');
+    }
+
+    let dialogProps = getDialogProps(setUnpublishedToolbarAction);
+    expect(dialogProps).toEqual(expect.objectContaining({
+        open: false,
+    }));
+
+    clickHandler();
+    dialogProps = getDialogProps(setUnpublishedToolbarAction);
+    expect(dialogProps).toEqual(expect.objectContaining({
+        open: true,
+    }));
+
+    dialogProps.onCancel();
+    dialogProps = getDialogProps(setUnpublishedToolbarAction);
+    expect(dialogProps).toEqual(expect.objectContaining({
+        open: false,
+    }));
+});
+
+test('Unpublish page when dialog is confirmed', () => {
+    const data = {
+        title: 'Title',
+    };
+
+    const unpublishPromise = Promise.resolve(data);
+    ResourceRequester.post.mockReturnValue(unpublishPromise);
+
+    const setUnpublishedToolbarAction = createSetUnpublishedToolbarAction();
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.id = 3;
+    // $FlowFixMe
+    setUnpublishedToolbarAction.resourceFormStore.resourceKey = 'pages';
+    // $FlowFixMe
+    setUnpublishedToolbarAction.resourceFormStore.resourceStore.locale.get.mockReturnValue('en');
+    setUnpublishedToolbarAction.resourceFormStore.options.webspace = 'sulu_io';
+
+    const toolbarItemConfig = setUnpublishedToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    const clickHandler = toolbarItemConfig.onClick;
+    if (!clickHandler) {
+        throw new Error('A onClick callback should be registered on the unpublish option');
+    }
+
+    let dialogProps = getDialogProps(setUnpublishedToolbarAction);
+    clickHandler();
+
+    expect(dialogProps.confirmLoading).toEqual(false);
+    dialogProps.onConfirm();
+    dialogProps = getDialogProps(setUnpublishedToolbarAction);
+    expect(dialogProps.confirmLoading).toEqual(true);
+    expect(ResourceRequester.post).toHaveBeenCalledWith(
+        'pages',
+        undefined,
+        {action: 'unpublish', id: 3, locale: setUnpublishedToolbarAction.resourceFormStore.locale, webspace: 'sulu_io'}
+    );
+
+    return unpublishPromise.then(() => {
+        dialogProps = getDialogProps(setUnpublishedToolbarAction);
+        expect(setUnpublishedToolbarAction.form.showSuccessSnackbar).toHaveBeenCalledWith();
+        expect(dialogProps.confirmLoading).toEqual(false);
+        expect(setUnpublishedToolbarAction.resourceFormStore.changeMultiple).toHaveBeenCalledWith(
+            data,
+            {isServerValue: true}
+        );
+        expect(setUnpublishedToolbarAction.resourceFormStore.dirty).toEqual(false);
+    });
+});

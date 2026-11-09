@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`The component should render 1`] = `
+<div>
+  <progress
+    class="progressBar progress"
+    max="10"
+    value="7"
+  >
+    70
+    %
+  </progress>
+</div>
+`;

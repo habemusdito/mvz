@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale|split('_')[0] }}">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% block meta %}{% endblock %}
+
+    {% block style %}{% endblock %}
+</head>
+<body>
+<header>
+    {% for localization in localizations|default([]) %}
+        <nav aria-label="Language switcher">
+            <a href="{{ localization.url }}">
+                {{ localization.locale }}
+            </a>
+        </nav>
+    {% endfor %}
+
+    {% block header %}{% endblock %}
+</header>
+
+<section id="content">
+    {% block content %}{% endblock %}
+</section>
+
+<aside>
+    {% block aside %}{% endblock %}
+</aside>
+
+<footer>
+    {% block footer %}
+        <p>Copyright {{ 'now'|date('Y') }} SULU</p>
+    {% endblock %}
+</footer>
+
+{% block javascripts %}{% endblock %}
+</body>
+</html>

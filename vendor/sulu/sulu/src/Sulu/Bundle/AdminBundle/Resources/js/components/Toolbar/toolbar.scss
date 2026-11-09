@@ -1,0 +1,22 @@
+@import './variables.scss';
+
+.toolbar {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    height: $toolbarHeight;
+    margin: 0;
+    box-shadow: 2px 6px 12px 0 rgba($shadowColor, .5);
+}
+
+.light {
+    background: $toolbarBackgroundLightColor;
+}
+
+.dark {
+    background: $toolbarBackgroundDarkColor;
+}
+
+.controls {
+    display: flex;
+}

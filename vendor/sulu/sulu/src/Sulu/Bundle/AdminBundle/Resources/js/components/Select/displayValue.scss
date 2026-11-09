@@ -1,0 +1,93 @@
+@import '../../containers/Application/colors.scss';
+
+$height: 30px;
+$lineHeight: 28px;
+$fontSize: 12px;
+$color: $black;
+$backgroundColor: $white;
+$borderSize: 1px;
+$borderColor: $silver;
+$borderRadius: 3px;
+$iconSize: 10px;
+$hoverColor: $shakespeare;
+
+$disabledColor: $gray;
+$disabledBackgroundColor: $wildSand;
+
+$darkBorderRadius: 4px;
+$darkBorderColor: $doveGray;
+$darkColor: $black;
+$darkBackgroundColor: $white;
+
+.displayValue {
+    cursor: pointer;
+    position: relative;
+    padding: 7px 30px 7px 10px;
+
+    &.flat {
+        border: none;
+        background-color: transparent;
+        color: inherit;
+    }
+
+    &.dark,
+    &.default {
+        display: flex;
+        width: 100%;
+        height: $height;
+        border: $borderSize solid $borderColor;
+        border-radius: $borderRadius;
+        text-align: left;
+        font-size: $fontSize;
+        color: $color;
+        background-color: $backgroundColor;
+
+        &:hover {
+            color: $hoverColor;
+        }
+    }
+
+    &.dark {
+        background-color: $darkBackgroundColor;
+        color: $darkColor;
+        border-color: $darkBorderColor;
+        border-radius: $darkBorderRadius;
+    }
+
+    &:disabled {
+        cursor: default;
+        color: $disabledColor;
+        background-color: $disabledBackgroundColor;
+
+        &:hover {
+            color: $disabledColor;
+        }
+    }
+}
+
+.has-icon {
+    padding-left: 30px;
+    text-align: center;
+}
+
+.front-icon {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 10px;
+    line-height: calc($lineHeight - $borderSize);
+    vertical-align: middle;
+    font-size: $iconSize;
+}
+
+.toggle {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 10px;
+    line-height: calc($lineHeight - $borderSize);
+    vertical-align: middle;
+    font-size: $iconSize;
+}

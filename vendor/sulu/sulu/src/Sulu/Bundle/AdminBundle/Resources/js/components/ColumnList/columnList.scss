@@ -1,0 +1,46 @@
+@import '../../containers/Application/colors.scss';
+@import './variables.scss';
+
+$columnListContainerTextColor: $black;
+
+:export {
+    column-width: $columnWidth;
+}
+
+.column-list-toolbar-container {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.toolbar-container {
+    height: $toolbarHeight;
+}
+
+.column-list-container {
+    color: $columnListContainerTextColor;
+    height: 100%;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: $columnBorder;
+    border-radius: $columnListBorderRadius;
+
+    &.first-visible-column-active {
+        border-top-left-radius: 0;
+    }
+
+    &.last-visible-column-active {
+        border-top-right-radius: 0;
+    }
+
+    .toolbar-container ~ & {
+        height: calc(100% - $toolbarHeight);
+    }
+}
+
+.column-list {
+    height: 100%;
+    white-space: nowrap;
+    background-color: $columnListBackgroundColor;
+}

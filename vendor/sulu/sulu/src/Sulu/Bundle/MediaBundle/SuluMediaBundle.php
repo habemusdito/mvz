@@ -1,0 +1,52 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Bundle\MediaBundle;
+
+use Sulu\Bundle\MediaBundle\DependencyInjection\FlysystemCompilerPass;
+use Sulu\Bundle\MediaBundle\DependencyInjection\ImageFormatCompilerPass;
+use Sulu\Bundle\MediaBundle\Entity\CollectionInterface;
+use Sulu\Bundle\MediaBundle\Entity\MediaInterface;
+use Sulu\Bundle\MediaBundle\Infrastructure\Sulu\Search\Visitor\AdminCollectionReindexProviderEnhancerInterface;
+use Sulu\Bundle\MediaBundle\Infrastructure\Sulu\Search\Visitor\AdminMediaReindexProviderEnhancerInterface;
+use Sulu\Bundle\PersistenceBundle\PersistenceBundleTrait;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\HttpKernel\Bundle\Bundle;
+
+final class SuluMediaBundle extends Bundle
+{
+    use PersistenceBundleTrait;
+
+    /**
+     * @internal this method is not part of the public API and should only be called by the Symfony framework classes
+     */
+    public function build(ContainerBuilder $container): void
+    {
+        $this->buildPersistence(
+            [
+                MediaInterface::class => 'sulu.model.media.class',
+                CollectionInterface::class => 'sulu.model.collection.class',
+            ],
+            $container
+        );
+
+        $container->addCompilerPass(new ImageFormatCompilerPass());
+        $container->addCompilerPass(new FlysystemCompilerPass());
+
+        $container->registerForAutoconfiguration(AdminMediaReindexProviderEnhancerInterface::class)
+            ->addTag('sulu_media.admin_media_reindex_provider_enhancer');
+
+        $container->registerForAutoconfiguration(AdminCollectionReindexProviderEnhancerInterface::class)
+            ->addTag('sulu_media.admin_collection_reindex_provider_enhancer');
+
+        parent::build($container);
+    }
+}

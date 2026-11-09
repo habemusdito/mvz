@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the CMS-IG SEAL project.
+ *
+ * (c) Alexander Schranz <alexander@sulu.io>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace CmsIg\Seal\Search;
+
+use CmsIg\Seal\Schema\Index;
+use CmsIg\Seal\Search\Facet\AbstractFacet;
+
+final class Search
+{
+    /**
+     * @param object[] $filters
+     * @param array<string, 'asc'|'desc'> $sortBys
+     * @param array<string> $highlightFields
+     * @param array<AbstractFacet> $facets
+     */
+    public function __construct(
+        public readonly Index $index,
+        public readonly array $filters = [],
+        public readonly array $sortBys = [],
+        public readonly int|null $limit = null,
+        public readonly int $offset = 0,
+        public readonly array $highlightFields = [],
+        public readonly string $highlightPreTag = '<mark>',
+        public readonly string $highlightPostTag = '</mark>',
+        public readonly string|null $distinct = null,
+        public readonly array $facets = [],
+    ) {
+    }
+}

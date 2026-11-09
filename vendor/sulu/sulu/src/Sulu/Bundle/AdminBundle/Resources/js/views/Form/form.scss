@@ -1,0 +1,6 @@
+@import '../../containers/Application/variables.scss';
+
+.form {
+    max-width: $viewMaxWidth;
+    min-width: $viewMinWidth;
+}

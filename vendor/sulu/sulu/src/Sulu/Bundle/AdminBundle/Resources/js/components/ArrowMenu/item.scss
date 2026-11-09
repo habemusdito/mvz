@@ -1,0 +1,40 @@
+@import '../../containers/Application/colors.scss';
+
+$itemColor: $black;
+$itemColorHover: $shakespeare;
+$disabledColor: $silver;
+
+.item {
+    background: none;
+    border: none;
+    display: block;
+    height: 22px;
+    color: $itemColor;
+    font-size: 12px;
+    line-height: 22px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    text-align: start;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    &.active {
+        font-weight: bold;
+    }
+
+    &:hover:not([disabled]) {
+        color: $itemColorHover;
+    }
+
+    &:disabled {
+        color: $disabledColor;
+        cursor: default;
+    }
+}
+
+.icon {
+    display: inline-block;
+    width: 20px;
+}

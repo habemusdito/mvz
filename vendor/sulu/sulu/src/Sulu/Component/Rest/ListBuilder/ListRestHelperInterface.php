@@ -1,0 +1,96 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Component\Rest\ListBuilder;
+
+/**
+ * Interface for retrieving information for lists from Request.
+ */
+interface ListRestHelperInterface
+{
+    /**
+     * Returns an array of ids to which the response should be restricted.
+     * If null is returned, entities in the response should not be restricted by their id.
+     *
+     * @return array<string>|null
+     */
+    public function getIds();
+
+    /**
+     * Returns an array of ids which should be excluded from the response.
+     *
+     * @return array<string>
+     */
+    public function getExcludedIds();
+
+    /**
+     * Returns the desired sort column.
+     *
+     * @return string|null
+     */
+    public function getSortColumn();
+
+    /**
+     * Returns desired sort order.
+     *
+     * @return string
+     */
+    public function getSortOrder();
+
+    /**
+     * Returns the maximum number of elements in a single response.
+     *
+     * @return int|null
+     */
+    public function getLimit();
+
+    /**
+     * Returns the calculated value for the starting position based
+     * on the page and limit values.
+     *
+     * @return int|null
+     */
+    public function getOffset();
+
+    /**
+     * returns the current page.
+     *
+     * @return int
+     */
+    public function getPage();
+
+    /**
+     * Returns an array with all the fields, which should be contained in the response.
+     * If null is returned every field should be contained.
+     *
+     * @return array|null
+     */
+    public function getFields();
+
+    /**
+     * Returns the pattern of the search.
+     *
+     * @return string|null
+     */
+    public function getSearchPattern();
+
+    /**
+     * Returns an array with all the fields the search pattern should be executed on.
+     *
+     * @return array|null
+     */
+    public function getSearchFields();
+
+    /**
+     * @return array|null
+     */
+    public function getFilter();
+}

@@ -1,0 +1,172 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Render only with title 1`] = `
+<DocumentFragment>
+  <div
+    class="searchResult"
+    role="button"
+  >
+    <div
+      class="imageContainer"
+    />
+    <div
+      class="resultContainer"
+    >
+      <div
+        class="titleContainer"
+      >
+        <div
+          class="title"
+        >
+          Result
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Render with all data 1`] = `
+<DocumentFragment>
+  <div
+    class="searchResult"
+    role="button"
+  >
+    <div
+      class="imageContainer"
+    >
+      <img
+        class="image"
+        src="/image.jpg"
+      />
+    </div>
+    <div
+      class="resultContainer"
+    >
+      <div
+        class="resource"
+      >
+        Page
+      </div>
+      <div
+        class="titleContainer"
+      >
+        <div
+          class="title"
+        >
+          Result
+        </div>
+        <div
+          class="locale"
+        >
+           (de)
+        </div>
+      </div>
+      <div
+        class="description"
+      >
+        Description
+
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Render with html description 1`] = `
+<DocumentFragment>
+  <div
+    class="searchResult"
+    role="button"
+  >
+    <div
+      class="imageContainer"
+    >
+      <img
+        class="image"
+        src="/image.jpg"
+      />
+    </div>
+    <div
+      class="resultContainer"
+    >
+      <div
+        class="resource"
+      >
+        Page
+      </div>
+      <div
+        class="titleContainer"
+      >
+        <div
+          class="title"
+        >
+          Result
+        </div>
+        <div
+          class="locale"
+        >
+           (de)
+        </div>
+      </div>
+      <div
+        class="description"
+      >
+        Description
+
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Render with icon instead of image 1`] = `
+<DocumentFragment>
+  <div
+    class="searchResult"
+    role="button"
+  >
+    <div
+      class="imageContainer"
+    >
+      <div
+        class="icon"
+      >
+        <span
+          aria-label="su-test"
+          class="su-test"
+        />
+      </div>
+    </div>
+    <div
+      class="resultContainer"
+    >
+      <div
+        class="resource"
+      >
+        Page
+      </div>
+      <div
+        class="titleContainer"
+      >
+        <div
+          class="title"
+        >
+          Result
+        </div>
+        <div
+          class="locale"
+        >
+           (de)
+        </div>
+      </div>
+      <div
+        class="description"
+      >
+        Description
+
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;

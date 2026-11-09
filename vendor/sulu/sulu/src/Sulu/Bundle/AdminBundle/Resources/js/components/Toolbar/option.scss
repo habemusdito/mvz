@@ -1,0 +1,95 @@
+@import '../../containers/Application/colors.scss';
+
+$optionTextLightColor: $blueZodiac;
+$optionTextDarkColor: $white;
+$optionTextLightColorDisabled: $silver;
+$optionTextDarkColorDisabled: $stormGray;
+$optionTextLightColorActive: $shakespeare;
+$optionTextDarkColorActive: $white;
+
+.light {
+    color: $optionTextLightColor;
+
+    button {
+        &:hover,
+        &:active,
+        &:focus {
+            color: $optionTextLightColorActive;
+        }
+
+        &:disabled {
+            color: $optionTextLightColorDisabled;
+        }
+    }
+}
+
+.dark {
+    color: $optionTextDarkColor;
+
+    button {
+        color: $optionTextDarkColor;
+
+        &:hover,
+        &:active,
+        &:focus {
+            color: $optionTextDarkColorActive;
+        }
+
+        &:disabled {
+            color: $optionTextDarkColorDisabled;
+        }
+    }
+}
+
+.option {
+    position: relative;
+    font-size: 12px;
+
+    &.is-selected {
+        font-weight: bold;
+
+        button:hover,
+        button:active,
+        button:focus {
+            cursor: inherit;
+            color: inherit;
+        }
+    }
+
+    button {
+        display: block;
+        overflow: hidden;
+        width: 100%;
+        padding: 10px 20px 10px 40px;
+        text-align: left;
+        border: 0;
+        font-weight: inherit;
+        background-color: transparent;
+
+        &:hover,
+        &:active,
+        &:focus {
+            cursor: pointer;
+        }
+
+        &:disabled {
+            cursor: default;
+        }
+    }
+
+    &.small {
+        button {
+            padding: 10px 10px 10px 23px;
+        }
+
+        .selected-icon {
+            left: 6px;
+        }
+    }
+}
+
+.selected-icon {
+    position: absolute;
+    top: 10px;
+    left: 20px;
+}

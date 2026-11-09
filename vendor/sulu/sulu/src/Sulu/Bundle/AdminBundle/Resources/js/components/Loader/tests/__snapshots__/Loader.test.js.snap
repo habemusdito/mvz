@@ -1,0 +1,49 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Render loader 1`] = `
+<div>
+  <div
+    class="spinner"
+    style="width: 40px; height: 40px;"
+  >
+    <div
+      class="doubleBounce1"
+    />
+    <div
+      class="doubleBounce2"
+    />
+  </div>
+</div>
+`;
+
+exports[`Render loader with additional classname 1`] = `
+<div>
+  <div
+    class="spinner test"
+    style="width: 40px; height: 40px;"
+  >
+    <div
+      class="doubleBounce1"
+    />
+    <div
+      class="doubleBounce2"
+    />
+  </div>
+</div>
+`;
+
+exports[`Render loader with other dimensions 1`] = `
+<div>
+  <div
+    class="spinner"
+    style="width: 50px; height: 50px;"
+  >
+    <div
+      class="doubleBounce1"
+    />
+    <div
+      class="doubleBounce2"
+    />
+  </div>
+</div>
+`;

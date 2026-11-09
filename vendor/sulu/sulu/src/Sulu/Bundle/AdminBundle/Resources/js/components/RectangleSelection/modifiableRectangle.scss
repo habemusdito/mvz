@@ -1,0 +1,72 @@
+@import '../../containers/Application/colors.scss';
+
+$backdropColor: rgba($black, .6);
+$rectangleBackgroundWithBackdrop: transparent;
+$rectangleBackgroundWithoutBackdrop: $backdropColor;
+$borderColor: $white;
+$borderSize: 2px;
+$minSizeNotificationColor: $white;
+$labelColor: $white;
+$labelColorDisabled: rgba($labelColor, .5);
+$resizeHandleBoxShadowColor: rgba($black, .3);
+
+.rectangle {
+    position: absolute;
+    background: $rectangleBackgroundWithoutBackdrop;
+    border: $borderSize solid $borderColor;
+    will-change: width, height, left, top;
+    cursor: move;
+
+    &.disabled {
+        border: none;
+        cursor: default;
+        pointer-events: none;
+    }
+
+    &.has-backdrop {
+        background-color: $rectangleBackgroundWithBackdrop;
+    }
+}
+
+.backdrop {
+    position: absolute;
+    top: -$borderSize;
+    left: -$borderSize;
+    bottom: -$borderSize;
+    right: -$borderSize;
+    outline-color: $backdropColor;
+    outline-style: solid;
+}
+
+.label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    color: $labelColor;
+    user-select: none;
+
+    .rectangle.disabled & {
+        color: $labelColorDisabled;
+    }
+}
+
+.resize-handle {
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    background: $borderColor;
+    cursor: nwse-resize;
+    box-shadow: 0 0 20px 0 $resizeHandleBoxShadowColor;
+}
+
+.min-size-notification {
+    position: absolute;
+    padding: 5px 15px 0 0;
+    color: $minSizeNotificationColor;
+    text-align: right;
+}

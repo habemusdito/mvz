@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Render Toggler component as heading 1`] = `
+<DocumentFragment>
+  <div
+    class="line"
+  >
+    <span
+      aria-label="su-eye"
+      class="su-eye icon"
+    />
+    <div
+      class="label"
+    >
+      Hide block
+    </div>
+    <label
+      class="label"
+      tabindex="-1"
+    >
+      <span
+        class="switch checkbox dark"
+      >
+        <input
+          type="checkbox"
+          value=""
+        />
+        <span />
+      </span>
+    </label>
+  </div>
+  <div
+    class="description"
+  >
+    Hides a block
+  </div>
+</DocumentFragment>
+`;

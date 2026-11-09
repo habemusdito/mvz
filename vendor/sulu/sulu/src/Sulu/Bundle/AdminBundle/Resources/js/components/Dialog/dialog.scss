@@ -1,0 +1,117 @@
+@import '../../containers/Application/colors.scss';
+@import './variables.scss';
+
+$contentBackgroundColor: $concrete;
+$footerBackgroundColor: $white;
+$footerBorderColor: $silver;
+$borderRadius: 3px;
+
+$titleColor: $black;
+$contentColor: $dustyGray;
+
+$confirmBackground: $shakespeare;
+$confirmColor: $white;
+
+$transitionDuration: 300ms;
+
+.dialog-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dialog {
+    width: 500px;
+    position: relative;
+    opacity: 0;
+    will-change: opacity;
+    transition: opacity $transitionDuration;
+    pointer-events: none;
+    max-height: calc(100vh - $dialogMarginVertical);
+
+    & > * {
+        pointer-events: auto;
+    }
+
+    &.small {
+        width: 50vw;
+    }
+
+    &.large {
+        width: 80vw;
+    }
+}
+
+.open {
+    & > * {
+        opacity: 1;
+    }
+}
+
+.content {
+    border-radius: $borderRadius;
+    background: $contentBackgroundColor;
+    overflow: hidden;
+    position: relative;
+
+    .header {
+        align-items: center;
+        display: flex;
+        height: $dialogHeaderHeight;
+        padding: 0 30px;
+    }
+
+    .headerItem {
+        color: $titleColor;
+        display: block;
+        font-size: 22px;
+        font-weight: bold;
+        line-height: 1.5em;
+        text-align: center;
+        width: 100%;
+    }
+
+    .footer {
+        background: $footerBackgroundColor;
+        border-top: 1px solid $footerBorderColor;
+        height: $dialogFooterHeight;
+        padding: 0 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-direction: row-reverse;
+    }
+}
+
+.snackbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+.article {
+    max-height: $dialogContentMaxHeight;
+    color: $contentColor;
+    font-size: 12px;
+    line-height: 22px;
+    overflow: auto;
+    padding: 0 30px 30px;
+
+    &.left {
+        text-align: left;
+    }
+
+    &.center {
+        text-align: center;
+    }
+
+    ul {
+        text-align: left;
+    }
+}

@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`The component should render 1`] = `
+<DocumentFragment>
+  <div
+    class="selection"
+  >
+    <p>
+      Lorem ipsum
+    </p>
+    <div
+      data-left="4"
+      data-radius="1"
+      data-testid="modifiable-circle"
+      data-top="3"
+    >
+      <button
+        type="button"
+      >
+        Double click
+      </button>
+      <button
+        type="button"
+      >
+        Finish
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;

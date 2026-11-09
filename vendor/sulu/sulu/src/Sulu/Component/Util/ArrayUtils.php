@@ -1,0 +1,45 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Component\Util;
+
+use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
+
+/**
+ * Collection utilities working with symfony-expressions.
+ */
+final class ArrayUtils
+{
+    private function __construct()
+    {
+    }
+
+    /**
+     * Filter array with given symfony-expression.
+     *
+     * @param string $expression
+     *
+     * @return array
+     */
+    public static function filter(array $collection, $expression, array $context = [])
+    {
+        $language = new ExpressionLanguage();
+
+        $result = [];
+        foreach ($collection as $key => $item) {
+            if ($language->evaluate($expression, \array_merge($context, ['item' => $item, 'key' => $key]))) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
+    }
+}

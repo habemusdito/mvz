@@ -1,0 +1,43 @@
+includes:
+    - phpstan-baseline.neon
+    - vendor/jangregor/phpstan-prophecy/extension.neon
+    - vendor/phpstan/phpstan-symfony/extension.neon
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-doctrine/rules.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+    - vendor/phpstan/phpstan-webmozart-assert/extension.neon
+    - vendor/spaze/phpstan-disallowed-calls/extension.neon
+
+parameters:
+    phpVersion: 80200
+    paths:
+        - .
+    level: max
+    parallel:
+        processTimeout: 300.0
+    reportUnmatchedIgnoredErrors: false
+    excludePaths:
+        - %currentWorkingDirectory%/node_modules/*
+        - %currentWorkingDirectory%/var/*
+        - %currentWorkingDirectory%/vendor/*
+        - %currentWorkingDirectory%/tests/Resources/cache/*
+        - %currentWorkingDirectory%/*/node_modules/*
+        - %currentWorkingDirectory%/*/tests/Application/var/*
+        - %currentWorkingDirectory%/*/tests/Application/Kernel.php
+        - %currentWorkingDirectory%/*/tests/Application/assets/*
+        - %currentWorkingDirectory%/*/Tests/Application/var/*
+        - %currentWorkingDirectory%/packages/*/tests/Application/var/*
+        - %currentWorkingDirectory%/packages/content/tests/Unit/Mocks/*
+        - %currentWorkingDirectory%/*/Tests/app/cache/*
+        - %currentWorkingDirectory%/*/Tests/app/var/*
+    disallowedMethodCalls:
+        -
+            method: 'Doctrine\Common\Collections\Collection::clear()'
+            message: 'use add and removeElement methods instead of clear to avoid unintended data loss if domain event listeners reflush during postFlush event'
+    symfony:
+        containerXmlPath: %currentWorkingDirectory%/var/cache/admin/dev/App_KernelDevDebugContainer.xml
+        consoleApplicationLoader: tests/phpstan/console-application.php
+        constantHassers: false
+    doctrine:
+        objectManagerLoader: tests/phpstan/object-manager.php

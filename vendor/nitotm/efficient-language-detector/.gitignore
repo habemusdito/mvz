@@ -1,0 +1,9 @@
+/vendor/
+/.idea/
+/composer.lock
+/phpcpd.phar
+/phpcs.phar
+psalm.xml
+/other/
+TODO.txt
+*.ignore

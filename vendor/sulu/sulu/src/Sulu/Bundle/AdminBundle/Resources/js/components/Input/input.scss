@@ -1,0 +1,208 @@
+@import '../../containers/Application/colors.scss';
+
+$inputBorderColor: $silver;
+$inputErrorBorderColor: $persianRed;
+$inputDisabledColor: $gray;
+$inputDisabledBackgroundColor: $wildSand;
+$inputBorderWidth: 1px;
+$inputBorderRadius: 3px;
+$inputHeight: 30px;
+$inputHeadlineHeight: 40px;
+$inputColor: $black;
+$inputPrependWidth: 32px;
+$inputHeadlinePrependWidth: 42px;
+$iconColor: $dustyGray;
+$iconBorderPadding: 5px;
+$placeholderColor: $dustyGray;
+$backgroundColor: $white;
+
+$darkInputBorderRadius: 4px;
+$darkInputBorderColor: $doveGray;
+$darkInputColorCollapsed: $black;
+$darkInputColor: $black;
+$darkBackgroundColorCollapsed: $wildSand;
+$darkBackgroundColor: $white;
+$darkIconColor: $doveGray;
+
+.input {
+    border: $inputBorderWidth solid $inputBorderColor;
+    border-radius: $inputBorderRadius;
+    display: inline-flex;
+    font-size: 12px;
+    align-items: center;
+    height: $inputHeight;
+    width: 100%;
+    background-color: $backgroundColor;
+    position: relative;
+
+    input {
+        width: calc(100% - $inputPrependWidth);
+        flex-grow: 1;
+        border: none;
+        border-radius: $inputBorderRadius;
+        height: calc($inputHeight - 2 * $inputBorderWidth);
+        color: $inputColor;
+        will-change: width, padding-left;
+        transition: width .3s, padding-left .1s linear;
+
+        &::placeholder {
+            color: $placeholderColor;
+        }
+
+        &:invalid {
+            box-shadow: none;
+        }
+
+        &:disabled {
+            color: $inputDisabledColor;
+            background-color: $inputDisabledBackgroundColor;
+            -webkit-text-fill-color: $inputDisabledColor; /* Necessary for Safari and iOS */
+        }
+    }
+
+    &.left {
+        input {
+            text-align: left;
+            padding-left: 10px;
+            padding-right: 1px;
+        }
+    }
+
+    &.center {
+        input {
+            text-align: center;
+            padding-left: 1px;
+            padding-right: 1px;
+        }
+    }
+
+    &.right {
+        input {
+            text-align: right;
+            padding-left: 1px;
+            padding-right: 10px;
+        }
+    }
+
+    &.collapsed {
+        input {
+            padding: 0;
+            width: 0;
+        }
+    }
+
+    &.has-append-icon {
+        input {
+            will-change: margin-right;
+            transition: margin-right .1s;
+            margin-right: 34px;
+        }
+
+        &.collapsed {
+            input {
+                margin-right: 0;
+                visibility: hidden;
+            }
+        }
+    }
+
+    &.dark {
+        background-color: $darkBackgroundColor;
+        color: $darkInputColor;
+        border-radius: $darkInputBorderRadius;
+        border-color: $darkInputBorderColor;
+
+        &.collapsed {
+            background-color: $darkBackgroundColorCollapsed;
+        }
+    }
+
+    &.error {
+        border-color: $inputErrorBorderColor;
+    }
+
+    &.disabled {
+        background-color: $inputDisabledBackgroundColor;
+    }
+
+    .prepended-container {
+        flex: 0 0 $inputPrependWidth;
+        height: calc($inputHeight - 2 * $iconBorderPadding);
+        width: $inputPrependWidth;
+
+        &.collapsed {
+            height: 100%;
+        }
+    }
+
+    .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        width: 100%;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    &.headline {
+        font-size: 18px;
+        line-height: 28px;
+        height: $inputHeadlineHeight;
+
+        input {
+            font-weight: bold;
+        }
+
+        .prepended-container {
+            flex: 0 0 $inputHeadlinePrependWidth;
+            height: calc($inputHeadlineHeight - 2 * $iconBorderPadding);
+            width: $inputHeadlinePrependWidth;
+        }
+
+        .icon {
+            font-size: 20px;
+        }
+    }
+}
+
+.prepended-container {
+    position: relative;
+    box-shadow: $inputBorderWidth 0 0 $inputBorderColor;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    &.dark {
+        box-shadow: $inputBorderWidth 0 0 $darkInputBorderColor;
+    }
+
+    &.collapsed {
+        box-shadow: none;
+    }
+}
+
+.append-container {
+    position: absolute;
+    height: calc($inputHeight - 2 * $iconBorderPadding);
+    right: 0;
+
+    .icon {
+        margin-right: 10px;
+    }
+}
+
+.icon {
+    display: block;
+    flex-grow: 0;
+    color: $iconColor;
+    line-height: calc($inputHeight - 2 * $iconBorderPadding);
+
+    &.dark {
+        color: $darkIconColor;
+    }
+}
+
+.icon-clickable {
+    cursor: pointer;
+}

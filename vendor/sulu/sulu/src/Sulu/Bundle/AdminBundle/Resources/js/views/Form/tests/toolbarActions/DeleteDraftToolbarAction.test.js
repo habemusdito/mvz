@@ -1,0 +1,257 @@
+// @flow
+import log from 'loglevel';
+import {ResourceFormStore} from '../../../../containers/Form';
+import ResourceRequester from '../../../../services/ResourceRequester';
+import ResourceStore from '../../../../stores/ResourceStore';
+import Router from '../../../../services/Router';
+import Form from '../../../../views/Form';
+import DeleteDraftToolbarAction from '../../toolbarActions/DeleteDraftToolbarAction';
+
+jest.mock('loglevel', () => ({
+    warn: jest.fn(),
+}));
+
+jest.mock('../../../../utils/Translator');
+
+jest.mock('../../../../stores/ResourceStore', () => jest.fn(function(resourceKey, id, observableOptions) {
+    this.id = id;
+    this.data = {};
+    this.observableOptions = observableOptions;
+    this.locale = {
+        get: jest.fn(),
+    };
+}));
+
+jest.mock('../../../../services/ResourceRequester', () => ({
+    post: jest.fn(),
+}));
+
+jest.mock('../../../../containers/Form/stores/ResourceFormStore', () => (
+    class {
+        resourceStore;
+        options = {};
+
+        constructor(resourceStore) {
+            this.resourceStore = resourceStore;
+        }
+
+        get id() {
+            return this.resourceStore.id;
+        }
+
+        get locale() {
+            return this.resourceStore.locale;
+        }
+
+        get data() {
+            return this.resourceStore.data;
+        }
+
+        delete = jest.fn();
+        changeMultiple = jest.fn();
+    })
+);
+
+jest.mock('../../../../services/Router', () => jest.fn(function() {
+    this.navigate = jest.fn();
+    this.route = {
+        options: {},
+    };
+}));
+
+jest.mock('../../../../views/Form', () => jest.fn(function() {
+    this.submit = jest.fn();
+    this.showSuccessSnackbar = jest.fn();
+}));
+
+function createDeleteDraftToolbarAction(options = {}) {
+    const resourceStore = new ResourceStore('test');
+    const formStore = new ResourceFormStore(resourceStore, 'test');
+    const router = new Router({});
+    const form = new Form({
+        locales: [],
+        resourceStore,
+        route: router.route,
+        router,
+    });
+
+    return new DeleteDraftToolbarAction(formStore, form, router, [], options, resourceStore);
+}
+
+function getDialogProps(deleteDraftToolbarAction: any): Object {
+    const node = deleteDraftToolbarAction.getNode();
+
+    if (!node) {
+        throw new Error('The delete draft dialog node should be rendered.');
+    }
+
+    return node.props;
+}
+
+test('Return enabled item config', () => {
+    const deleteDraftToolbarAction = createDeleteDraftToolbarAction();
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.id = 5;
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.data.published = true;
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.data.publishedState = false;
+
+    expect(deleteDraftToolbarAction.getToolbarItemConfig()).toEqual(expect.objectContaining({
+        disabled: false,
+        label: 'sulu_page.delete_draft',
+        type: 'button',
+    }));
+});
+
+test('Return no item config if deprecated display_condition is not met', () => {
+    const deleteDraftToolbarAction = createDeleteDraftToolbarAction({display_condition: '_permission.live'});
+
+    const toolbarItemConfig = deleteDraftToolbarAction.getToolbarItemConfig();
+    expect(toolbarItemConfig).toEqual(undefined);
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('The "display_condition" option is deprecated'));
+});
+
+test('Return no item config if passed visible_condition is not met', () => {
+    const deleteDraftToolbarAction = createDeleteDraftToolbarAction({visible_condition: '_permission.live'});
+
+    const toolbarItemConfig = deleteDraftToolbarAction.getToolbarItemConfig();
+    expect(toolbarItemConfig).toEqual(undefined);
+    expect(log.warn).not.toHaveBeenCalled();
+});
+
+test('Return item config if passed visible_condition is met', () => {
+    const deleteDraftToolbarAction = createDeleteDraftToolbarAction({visible_condition: '_permission.edit'});
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.data._permission = {edit: true};
+
+    const toolbarItemConfig = deleteDraftToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    expect(toolbarItemConfig).toEqual(expect.objectContaining({disabled: true, label: 'sulu_page.delete_draft'}));
+});
+
+test('Return disabled item config when page is not published', () => {
+    const deleteDraftToolbarAction = createDeleteDraftToolbarAction();
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.id = 5;
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.data.published = false;
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.data.publishedState = false;
+
+    const toolbarItemConfig = deleteDraftToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    expect(toolbarItemConfig).toEqual(expect.objectContaining({
+        disabled: true,
+        label: 'sulu_page.delete_draft',
+    }));
+});
+
+test('Return disabled item config when page has no draft', () => {
+    const deleteDraftToolbarAction = createDeleteDraftToolbarAction();
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.id = 5;
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.data.published = true;
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.data.publishedState = true;
+
+    const toolbarItemConfig = deleteDraftToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    expect(toolbarItemConfig).toEqual(expect.objectContaining({
+        disabled: true,
+        label: 'sulu_page.delete_draft',
+    }));
+});
+
+test('Return no dialog if no id is set', () => {
+    const deleteDraftToolbarAction = createDeleteDraftToolbarAction();
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.id = undefined;
+
+    expect(deleteDraftToolbarAction.getNode()).toEqual(null);
+});
+
+test('Close dialog when onClose from delete draft dialog is called', () => {
+    const deleteDraftToolbarAction = createDeleteDraftToolbarAction();
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.id = 3;
+    // $FlowFixMe
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.locale.get.mockReturnValue('en');
+    deleteDraftToolbarAction.resourceFormStore.options.webspace = 'sulu_io';
+
+    const toolbarItemConfig = deleteDraftToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    const clickHandler = toolbarItemConfig.onClick;
+    if (!clickHandler) {
+        throw new Error('An onClick callback should be registered on the delete draft option');
+    }
+
+    let dialogProps = getDialogProps(deleteDraftToolbarAction);
+    expect(dialogProps).toEqual(expect.objectContaining({
+        open: false,
+    }));
+
+    clickHandler();
+    dialogProps = getDialogProps(deleteDraftToolbarAction);
+    expect(dialogProps).toEqual(expect.objectContaining({
+        open: true,
+    }));
+
+    dialogProps.onCancel();
+    dialogProps = getDialogProps(deleteDraftToolbarAction);
+    expect(dialogProps).toEqual(expect.objectContaining({
+        open: false,
+    }));
+});
+
+test('Delete draft when dialog is confirmed', () => {
+    const data = {
+        title: 'Title',
+    };
+
+    const deleteDraftPromise = Promise.resolve(data);
+    ResourceRequester.post.mockReturnValue(deleteDraftPromise);
+
+    const deleteDraftToolbarAction = createDeleteDraftToolbarAction();
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.id = 3;
+    // $FlowFixMe
+    deleteDraftToolbarAction.resourceFormStore.resourceKey = 'snippets';
+    // $FlowFixMe
+    deleteDraftToolbarAction.resourceFormStore.resourceStore.locale.get.mockReturnValue('en');
+    deleteDraftToolbarAction.resourceFormStore.options.webspace = 'sulu_io';
+
+    const toolbarItemConfig = deleteDraftToolbarAction.getToolbarItemConfig();
+    if (!toolbarItemConfig) {
+        throw new Error('The toolbarItemConfig should be a value!');
+    }
+
+    const clickHandler = toolbarItemConfig.onClick;
+    if (!clickHandler) {
+        throw new Error('An onClick callback should be registered on the delete draft option');
+    }
+
+    let dialogProps = getDialogProps(deleteDraftToolbarAction);
+    clickHandler();
+
+    expect(dialogProps.confirmLoading).toEqual(false);
+    dialogProps.onConfirm();
+    dialogProps = getDialogProps(deleteDraftToolbarAction);
+    expect(dialogProps.confirmLoading).toEqual(true);
+    expect(ResourceRequester.post).toHaveBeenCalledWith(
+        'snippets',
+        undefined,
+        {action: 'remove_draft', id: 3, locale: deleteDraftToolbarAction.resourceFormStore.locale, webspace: 'sulu_io'}
+    );
+
+    return deleteDraftPromise.then(() => {
+        dialogProps = getDialogProps(deleteDraftToolbarAction);
+        expect(deleteDraftToolbarAction.form.showSuccessSnackbar).toHaveBeenCalledWith();
+        expect(dialogProps.confirmLoading).toEqual(false);
+        expect(deleteDraftToolbarAction.resourceFormStore.changeMultiple).toHaveBeenCalledWith(
+            data,
+            {isServerValue: true}
+        );
+        expect(deleteDraftToolbarAction.resourceFormStore.dirty).toEqual(false);
+    });
+});

@@ -1,0 +1,56 @@
+{
+    "_hash": "@string@",
+    "author": null,
+    "authored": "@dateTime@",
+    "availableLocales": [
+        "en"
+    ],
+    "linkOn": false,
+    "linkData": null,
+    "changed": "@datetime@",
+    "changer": "@integer@",
+    "contentLocales": [
+        "en"
+    ],
+    "created": "@datetime@",
+    "creator": "@integer@",
+    "excerpt": {
+        "title": "Excerpt Title",
+        "description": "Excerpt Description",
+        "more": "Excerpt More"
+    },
+    "excerptAudienceTargetGroups": [],
+    "excerptCategories": [],
+    "excerptSegment": null,
+    "excerptTags": [
+        "@integer@",
+        "@integer@"
+    ],
+    "ghostLocale": "en",
+    "id": "@integer@",
+    "images": null,
+    "lastModified": "@dateTime@",
+    "lastModifiedEnabled": true,
+    "locale": "en",
+    "mainWebspace": "sulu-io",
+    "published": "@dateTime@",
+    "publishedState": false,
+    "seo": {
+        "title": "Seo Title",
+        "description": "Seo Description",
+        "keywords": "Seo Keyword 1, Seo Keyword 2",
+        "canonicalUrl": "https://sulu.io/"
+    },
+    "seoHideInSitemap": true,
+    "seoNoFollow": true,
+    "seoNoIndex": true,
+    "shadowLocale": null,
+    "shadowLocales": [],
+    "shadowOn": false,
+    "stage": "draft",
+    "template": "example-2",
+    "title": "Test Example",
+    "url": "/my-example",
+    "version": 0,
+    "workflowPlace": "draft"
+}

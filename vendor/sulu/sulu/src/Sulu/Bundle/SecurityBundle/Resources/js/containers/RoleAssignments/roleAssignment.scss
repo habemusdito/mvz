@@ -1,0 +1,26 @@
+@import 'sulu-admin-bundle/containers/Application/colors.scss';
+
+$roleAssignmentBorderColor: $silver;
+
+.role-assignment {
+    font-size: 12px;
+
+    td {
+        border-bottom: 1px solid $roleAssignmentBorderColor;
+        padding: 10px;
+    }
+
+    &:last-child {
+        td {
+            border-bottom: none;
+        }
+    }
+
+    &.disabled {
+        opacity: .5;
+    }
+}
+
+.locale {
+    width: 50%;
+}

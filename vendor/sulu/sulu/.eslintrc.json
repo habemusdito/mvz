@@ -1,0 +1,265 @@
+{
+    "env": {
+        "browser": true,
+        "es6": true,
+        "jest": true
+    },
+    "globals": {
+        "process": true,
+        "SULU_ADMIN_BUILD_VERSION": "readonly"
+    },
+    "extends": [
+        "eslint:recommended",
+        "plugin:react/recommended",
+        "plugin:flowtype/recommended",
+        "plugin:testing-library/react",
+        "plugin:jest-dom/recommended"
+    ],
+    "parser": "@babel/eslint-parser",
+    "parserOptions": {
+        "ecmaFeatures": {
+            "experimentalObjectRestSpread": true,
+            "jsx": true
+        },
+        "sourceType": "module"
+    },
+    "plugins": [
+        "babel",
+        "import",
+        "react",
+        "flowtype",
+        "jsx-a11y"
+    ],
+    "settings": {
+        "react": {
+            "version": "detect",
+            "flowVersion": "0.142.0"
+        },
+        "testing-library/utils-module": "off"
+    },
+    "rules": {
+        "indent": [
+            "error",
+            4,
+            {
+                "SwitchCase": 1
+            }
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "max-len": [
+            "error",
+            120
+        ],
+        "max-statements-per-line": "error",
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "comma-dangle": [
+            "error",
+            {
+                "arrays": "always-multiline",
+                "objects": "always-multiline",
+                "imports": "always-multiline",
+                "exports": "always-multiline",
+                "functions": "never"
+            }
+        ],
+        "comma-spacing": "error",
+        "key-spacing": "error",
+        "object-curly-spacing": "error",
+        "object-shorthand": "error",
+        "no-alert": "error",
+        "no-console": "error",
+        "no-restricted-imports": [
+            "error",
+            {
+                "paths": [
+                    {
+                        "name": "enzyme",
+                        "message": "Use React Testing Library for React tests."
+                    },
+                    {
+                        "name": "enzyme-to-json",
+                        "message": "Use React Testing Library snapshots instead."
+                    },
+                    {
+                        "name": "@wojtekmaj/enzyme-adapter-react-17",
+                        "message": "Enzyme is no longer configured for tests."
+                    }
+                ]
+            }
+        ],
+        "no-prototype-builtins": "off",
+        "no-unused-vars": ["error", {"ignoreRestSiblings": true}],
+        "no-useless-rename": "error",
+        "padded-blocks": [
+            "error",
+            "never"
+        ],
+        "arrow-parens": [
+            "error",
+            "always"
+        ],
+        "eol-last": [
+            "error",
+            "always"
+        ],
+        "no-multiple-empty-lines": [
+            "error",
+            {
+                "max": 1,
+                "maxEOF": 0
+            }
+        ],
+        "no-trailing-spaces": "error",
+        "curly": "error",
+        "no-case-declarations": "off",
+        "no-multi-spaces": "error",
+        "prefer-const": "error",
+        "space-infix-ops": "error",
+        "space-before-function-paren": [
+            "error",
+            "never"
+        ],
+        "keyword-spacing": [
+            "error",
+            {
+                "before": true,
+                "after": true
+            }
+        ],
+        "yoda": [
+            "error",
+            "never"
+        ],
+        "jsx-quotes": [
+            "error",
+            "prefer-double"
+        ],
+        "import/order": [
+            "error", {
+                "groups": [
+                    "builtin",
+                    "external",
+                    "parent",
+                    "sibling",
+                    "index",
+                    "type"
+                ]
+            }
+        ],
+        "import/no-dynamic-require": "error",
+        "import/no-webpack-loader-syntax": "error",
+        "import/export": "error",
+        "import/no-extraneous-dependencies": "error",
+        "import/no-nodejs-modules": "error",
+        "import/first": "error",
+        "import/no-duplicates": "error",
+        "import/no-absolute-path": "error",
+        "import/named": "error",
+        "import/default": "error",
+        "react/no-deprecated": "error",
+        "react/sort-default-props": [
+            "error",
+            {
+                "ignoreCase": true
+            }
+        ],
+        "react/jsx-curly-brace-presence": [
+            "error",
+            {
+                "props": "never",
+                "children": "never",
+                "propElementValues": "always"
+            }
+        ],
+        "react/jsx-curly-spacing": [
+            "error",
+            "never"
+        ],
+        "react/jsx-closing-bracket-location": [
+            "error",
+            "line-aligned"
+        ],
+        "react/jsx-max-props-per-line": [
+            "error",
+            {
+                "maximum": 1,
+                "when": "multiline"
+            }
+        ],
+        "react/jsx-wrap-multilines": [
+            "error",
+            {
+                "declaration": "parens-new-line",
+                "assignment": "parens-new-line",
+                "return": "parens-new-line",
+                "arrow": "parens-new-line",
+                "condition": "ignore",
+                "logical": "ignore",
+                "prop": "ignore"
+            }
+        ],
+        "react/jsx-pascal-case": "error",
+        "react/jsx-sort-props": [
+            "error",
+            {
+                "ignoreCase": true
+            }
+        ],
+        "react/jsx-tag-spacing": [
+            "error",
+            {
+                "beforeClosing": "never"
+            }
+        ],
+        "react/jsx-key": "error",
+        "react/jsx-indent": [
+            "error",
+            4,
+            {
+                "indentLogicalExpressions": true
+            }
+        ],
+        "react/jsx-no-bind": "error",
+        "react/jsx-equals-spacing": "error",
+        "react/jsx-handler-names": "error",
+        "react/jsx-first-prop-new-line": [
+            "error",
+            "multiline-multiprop"
+        ],
+        "react/prop-types": "off",
+        "flowtype/require-valid-file-annotation": [
+            "error",
+            "always",
+            {
+                "annotationStyle": "line"
+            }
+        ],
+        "flowtype/space-after-type-colon": [
+            "error",
+            "always"
+        ],
+        "flowtype/object-type-delimiter": [
+            "error",
+            "comma"
+        ],
+        "flowtype/no-dupe-keys": "error",
+        "flowtype/delimiter-dangle": [
+            "error",
+            "always-multiline"
+        ],
+        "flowtype/sort-keys": "error",
+        "babel/semi": "error",
+        "jsx-a11y/no-static-element-interactions": "error",
+        "react/button-has-type": "error",
+        "testing-library/no-node-access": "off",
+        "testing-library/prefer-explicit-assert": "error",
+        "testing-library/prefer-user-event": "error"
+    },
+    "reportUnusedDisableDirectives": true
+}

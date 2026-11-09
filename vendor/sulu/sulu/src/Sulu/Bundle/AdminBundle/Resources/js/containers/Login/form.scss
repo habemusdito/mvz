@@ -1,0 +1,40 @@
+@import '../Application/colors.scss';
+
+$errorColor: $roman;
+
+.form {
+    width: 100%;
+
+    fieldset {
+        padding: 0;
+        border: 0;
+    }
+}
+
+.buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    width: 100%;
+}
+
+.input-field {
+    display: block;
+    margin-bottom: 10px;
+
+    &.error {
+        color: $errorColor;
+    }
+}
+
+.label-text {
+    margin-bottom: 10px;
+}
+
+.information-label {
+    display: block;
+    color: $scorpion;
+    font-size: 10px;
+    line-height: 20px;
+    height: 20px;
+}

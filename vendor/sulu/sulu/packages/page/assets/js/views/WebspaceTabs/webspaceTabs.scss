@@ -1,0 +1,8 @@
+@import './variables.scss';
+
+.webspace-select {
+    position: relative;
+    display: inline-block;
+    margin-bottom: $webspaceTabsWebspaceSelectMargin;
+    width: 0;
+}

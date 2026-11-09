@@ -1,0 +1,103 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Loupe\Loupe\Internal\Search\Sorting;
+
+use Doctrine\DBAL\Query\QueryBuilder;
+use Loupe\Loupe\Internal\Engine;
+use Loupe\Loupe\Internal\Filter\Ast\FilterValue;
+use Loupe\Loupe\Internal\Filter\Ast\Operator;
+use Loupe\Loupe\Internal\Search\AbstractQueryParameters;
+use Loupe\Loupe\Internal\Search\Cte;
+use Loupe\Loupe\Internal\Search\Searcher;
+
+abstract class AbstractSorter
+{
+    private int $id = 0;
+
+    /**
+     * @param Searcher<AbstractQueryParameters> $searcher
+     */
+    abstract public function apply(Searcher $searcher, Engine $engine): void;
+
+    abstract public static function fromString(string $value, Engine $engine, Direction $direction): self;
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function requiresFullResultCount(AbstractQueryParameters $queryParameters): bool
+    {
+        return true;
+    }
+
+    public function setId(int $id): self
+    {
+        $this->id = $id;
+
+        return $this;
+    }
+
+    abstract public static function supports(string $value, Engine $engine): bool;
+
+    /**
+     * @param Searcher<AbstractQueryParameters> $searcher
+     */
+    protected function addAndOrderByCte(Searcher $searcher, Engine $engine, Direction $direction, string $cteName, QueryBuilder $queryBuilder): void
+    {
+        if ($searcher->hasCTE($cteName)) {
+            return;
+        }
+
+        $searcher->requireMatchesJoin();
+        $searcher->addCTE(new Cte($cteName, ['document_id', 'sort_order'], $queryBuilder));
+
+        $searcher->getQueryBuilder()
+            ->innerJoin(
+                Searcher::CTE_MATCHES,
+                $cteName,
+                $cteName,
+                \sprintf(
+                    '%s.document_id = %s.document_id',
+                    $cteName,
+                    Searcher::CTE_MATCHES,
+                ),
+            )
+        ;
+
+        $this->addOrderByExpression($searcher, $engine, $direction, $cteName.'.sort_order');
+    }
+
+    /**
+     * @param Searcher<AbstractQueryParameters> $searcher
+     */
+    protected function addOrderByExpression(Searcher $searcher, Engine $engine, Direction $direction, string $expression): void
+    {
+        // Because of how Loupe works (SQLite's loosely typed system) we need to always ensure that null and empty values
+        // are ordered ascending first.
+        // Null and empty values should always come last for Loupe (or generally speaking for any search engine probably).
+        $searcher->addOrderBy(
+            Operator::Equals->buildSql(
+                $engine->getConnection(),
+                $expression,
+                FilterValue::createNull(),
+            ),
+            Direction::ASC->getSQL(),
+            true,
+        );
+
+        $searcher->addOrderBy(
+            Operator::Equals->buildSql(
+                $engine->getConnection(),
+                $expression,
+                FilterValue::createEmpty(),
+            ),
+            Direction::ASC->getSQL(),
+            true,
+        );
+
+        $searcher->addOrderBy($expression, $direction->getSQL(), true);
+    }
+}

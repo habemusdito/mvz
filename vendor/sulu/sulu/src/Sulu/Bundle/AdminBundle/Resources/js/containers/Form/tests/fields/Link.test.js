@@ -1,0 +1,396 @@
+// @flow
+import React from 'react';
+import {render} from '@testing-library/react';
+import {observable} from 'mobx';
+import log from 'loglevel';
+import fieldTypeDefaultProps from '../../../../utils/TestHelper/fieldTypeDefaultProps';
+import ResourceStore from '../../../../stores/ResourceStore';
+import FormInspector from '../../FormInspector';
+import ResourceFormStore from '../../stores/ResourceFormStore';
+import Link from '../../fields/Link';
+import type {LinkValue} from '../../../Link/types';
+
+let mockLinkProps: Object = {};
+
+const mockReact = require('react');
+
+jest.mock('loglevel', () => ({
+    warn: jest.fn(),
+}));
+
+jest.mock('../../../../stores/ResourceStore', () => jest.fn());
+jest.mock('../../stores/ResourceFormStore', () => jest.fn());
+jest.mock('../../FormInspector', () => jest.fn());
+jest.mock('../../../Link/Link', () => {
+    const LinkMock: any = jest.fn((props) => {
+        mockLinkProps = props;
+
+        return mockReact.createElement('div');
+    });
+
+    LinkMock.defaultProps = jest.requireActual('../../../Link/Link').default.defaultProps;
+
+    return LinkMock;
+});
+
+beforeEach(() => {
+    mockLinkProps = {};
+});
+
+test('Pass props correctly to Link component', () => {
+    const formInspector = new FormInspector(new ResourceFormStore(new ResourceStore('test'), 'test'));
+    const changeSpy = jest.fn();
+    const finishSpy = jest.fn();
+
+    const locale = observable.box('en');
+    // $FlowFixMe
+    formInspector.locale = locale;
+
+    const value = {
+        anchor: 'anchorTest',
+        query: 'queryTest',
+        href: '123-asdf-123',
+        locale: 'en',
+        provider: 'page',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        title: 'Test',
+    };
+
+    const options = {
+        enable_attributes: {
+            name: 'enable_attributes',
+            value: true,
+        },
+        enable_anchor: {
+            name: 'enable_anchor',
+            value: true,
+        },
+        enable_query: {
+            name: 'enable_query',
+            value: true,
+        },
+    };
+
+    render(
+        <Link
+            {...fieldTypeDefaultProps}
+            disabled={true}
+            formInspector={formInspector}
+            onChange={changeSpy}
+            onFinish={finishSpy}
+            schemaOptions={options}
+            value={value}
+        />
+    );
+
+    expect(mockLinkProps).toEqual({
+        'disabled': true,
+        'enableAnchor': true,
+        'enableQuery': true,
+        'enableTarget': true,
+        'enableTitle': true,
+        'enableRel': true,
+        'excludedTypes': [],
+        locale,
+        'onChange': changeSpy,
+        'onFinish': finishSpy,
+        'types': [],
+        'value': {
+            'anchor': 'anchorTest',
+            'query': 'queryTest',
+            'href': '123-asdf-123',
+            'locale': 'en',
+            'provider': 'page',
+            'rel': 'noopener noreferrer',
+            'target': '_blank',
+            'title': 'Test',
+        },
+    });
+});
+
+test('Pass props correctly to Link component with deprecated options', () => {
+    const formInspector = new FormInspector(new ResourceFormStore(new ResourceStore('test'), 'test'));
+    const changeSpy = jest.fn();
+    const finishSpy = jest.fn();
+
+    const locale = observable.box('en');
+    // $FlowFixMe
+    formInspector.locale = locale;
+
+    const value = {
+        anchor: 'anchorTest',
+        href: '123-asdf-123',
+        locale: 'en',
+        provider: 'page',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        title: 'Test',
+    };
+
+    const options = {
+        enable_target: {
+            name: 'enable_target',
+            value: true,
+        },
+        enable_anchor: {
+            name: 'enable_anchor',
+            value: true,
+        },
+        enable_title: {
+            name: 'enable_title',
+            value: true,
+        },
+    };
+
+    render(
+        <Link
+            {...fieldTypeDefaultProps}
+            disabled={true}
+            formInspector={formInspector}
+            onChange={changeSpy}
+            onFinish={finishSpy}
+            schemaOptions={options}
+            value={value}
+        />
+    );
+
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('The "enable_target" schema option is deprecated'));
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('The "enable_title" schema option is deprecated'));
+
+    expect(mockLinkProps).toEqual({
+        'disabled': true,
+        'enableAnchor': true,
+        'enableQuery': false,
+        'enableTarget': true,
+        'enableTitle': true,
+        'enableRel': false,
+        'excludedTypes': [],
+        locale,
+        'onChange': changeSpy,
+        'onFinish': finishSpy,
+        'types': [],
+        'value': {
+            'anchor': 'anchorTest',
+            'href': '123-asdf-123',
+            'locale': 'en',
+            'provider': 'page',
+            'rel': 'noopener noreferrer',
+            'target': '_blank',
+            'title': 'Test',
+        },
+    });
+});
+
+test('Pass props correctly to Link component filtered types', () => {
+    const formInspector = new FormInspector(new ResourceFormStore(new ResourceStore('test'), 'test'));
+    const changeSpy = jest.fn();
+    const finishSpy = jest.fn();
+
+    const locale = observable.box('en');
+    // $FlowFixMe
+    formInspector.locale = locale;
+
+    const value: LinkValue = {
+        anchor: 'anchorTest',
+        href: '123-asdf-123',
+        locale: 'en',
+        provider: 'page',
+        rel: 'noopener noreferrer',
+        target: '_blank',
+        title: 'Test',
+    };
+
+    const options = {
+        enable_attributes: {
+            name: 'enable_attributes',
+            value: true,
+        },
+        enable_anchor: {
+            name: 'enable_anchor',
+            value: true,
+        },
+        types: {
+            name: 'types',
+            value: [
+                {name: 'external'},
+                {name: 'page'},
+            ],
+        },
+    };
+
+    render(
+        <Link
+            {...fieldTypeDefaultProps}
+            disabled={true}
+            formInspector={formInspector}
+            onChange={changeSpy}
+            onFinish={finishSpy}
+            schemaOptions={options}
+            value={value}
+        />
+    );
+
+    expect(mockLinkProps).toEqual({
+        'disabled': true,
+        'enableAnchor': true,
+        'enableQuery': false,
+        'enableTarget': true,
+        'enableTitle': true,
+        'enableRel': true,
+        'excludedTypes': [],
+        locale,
+        'onChange': changeSpy,
+        'onFinish': finishSpy,
+        'types': ['external', 'page'],
+        'value': {
+            'anchor': 'anchorTest',
+            'href': '123-asdf-123',
+            'locale': 'en',
+            'provider': 'page',
+            'rel': 'noopener noreferrer',
+            'target': '_blank',
+            'title': 'Test',
+        },
+    });
+});
+
+test('Pass props correctly to Link component filtered excluded_types', () => {
+    const formInspector = new FormInspector(new ResourceFormStore(new ResourceStore('test'), 'test'));
+    const changeSpy = jest.fn();
+    const finishSpy = jest.fn();
+
+    const locale = observable.box('en');
+    // $FlowFixMe
+    formInspector.locale = locale;
+
+    const value: LinkValue = {
+        anchor: 'anchorTest',
+        href: '123-asdf-123',
+        locale: 'en',
+        provider: 'page',
+        rel: 'noopener noreferrer',
+        target: '_blank',
+        title: 'Test',
+    };
+
+    const options = {
+        enable_attributes: {
+            name: 'enable_attributes',
+            value: true,
+        },
+        enable_anchor: {
+            name: 'enable_anchor',
+            value: true,
+        },
+        excluded_types: {
+            name: 'types',
+            value: [
+                {name: 'external'},
+                {name: 'page'},
+            ],
+        },
+    };
+
+    render(
+        <Link
+            {...fieldTypeDefaultProps}
+            disabled={true}
+            formInspector={formInspector}
+            onChange={changeSpy}
+            onFinish={finishSpy}
+            schemaOptions={options}
+            value={value}
+        />
+    );
+
+    expect(mockLinkProps).toEqual({
+        'disabled': true,
+        'enableAnchor': true,
+        'enableQuery': false,
+        'enableTarget': true,
+        'enableTitle': true,
+        'enableRel': true,
+        'excludedTypes': ['external', 'page'],
+        locale,
+        'onChange': changeSpy,
+        'onFinish': finishSpy,
+        'types': [],
+        'value': {
+            'anchor': 'anchorTest',
+            'href': '123-asdf-123',
+            'locale': 'en',
+            'provider': 'page',
+            'rel': 'noopener noreferrer',
+            'target': '_blank',
+            'title': 'Test',
+        },
+    });
+});
+
+test('Pass props correctly to Link component disabled anchor, query, target and rel', () => {
+    const formInspector = new FormInspector(new ResourceFormStore(new ResourceStore('test'), 'test'));
+    const changeSpy = jest.fn();
+    const finishSpy = jest.fn();
+
+    const locale = observable.box('en');
+    // $FlowFixMe
+    formInspector.locale = locale;
+
+    const value: LinkValue = {
+        anchor: 'anchorTest',
+        query: 'queryTest',
+        href: '123-asdf-123',
+        locale: 'en',
+        provider: 'page',
+        rel: 'noopener noreferrer',
+        target: '_blank',
+        title: 'Test',
+    };
+
+    const options = {
+        types: {
+            name: 'types',
+            value: [
+                {name: 'external'},
+                {name: 'page'},
+            ],
+        },
+    };
+
+    render(
+        <Link
+            {...fieldTypeDefaultProps}
+            disabled={true}
+            formInspector={formInspector}
+            onChange={changeSpy}
+            onFinish={finishSpy}
+            schemaOptions={options}
+            value={value}
+        />
+    );
+
+    expect(mockLinkProps).toEqual({
+        'disabled': true,
+        'enableAnchor': false,
+        'enableQuery': false,
+        'enableTarget': false,
+        'enableTitle': false,
+        'enableRel': false,
+        'excludedTypes': [],
+        locale,
+        'onChange': changeSpy,
+        'onFinish': finishSpy,
+        'types': ['external', 'page'],
+        'value': {
+            'anchor': 'anchorTest',
+            'query': 'queryTest',
+            'href': '123-asdf-123',
+            'locale': 'en',
+            'provider': 'page',
+            'rel': 'noopener noreferrer',
+            'target': '_blank',
+            'title': 'Test',
+        },
+    });
+});

@@ -1,0 +1,32 @@
+@import '../Button/variables.scss';
+
+.button-group {
+    display: flex;
+}
+
+.button {
+    border-radius: 0;
+    min-width: 34px;
+
+    &:first-child {
+        border-top-left-radius: $iconBorderRadius;
+        border-bottom-left-radius: $iconBorderRadius;
+    }
+
+    &:last-child {
+        border-top-right-radius: $iconBorderRadius;
+        border-bottom-right-radius: $iconBorderRadius;
+    }
+
+    &:not(:first-child) {
+        border-left-width: 0;
+    }
+
+    &:disabled:not(:last-child) {
+        border-right-width: 0;
+    }
+
+    &:disabled + & {
+        border-left-width: 1px;
+    }
+}

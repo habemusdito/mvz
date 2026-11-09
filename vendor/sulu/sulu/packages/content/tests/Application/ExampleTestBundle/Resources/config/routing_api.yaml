@@ -1,0 +1,69 @@
+example_test.get_examples:
+    path: '/examples.{_format}'
+    methods: GET
+    controller: 'example_test.example_controller::cgetAction'
+    format: json
+    requirements:
+        _format: json|csv
+    options:
+        api_dimension_listener: true
+
+example_test.get_example_versions:
+    path: /examples/{id}/versions.{_format}
+    methods: GET
+    controller: 'example_test.example_controller::getVersionsAction'
+    format: json
+    requirements:
+        _format: json|csv
+    options:
+        api_dimension_listener: true
+
+example_test.get_example:
+    path: '/examples/{id}.{_format}'
+    methods: GET
+    controller: 'example_test.example_controller::getAction'
+    format: json
+    requirements:
+        _format: json|csv
+    options:
+        api_dimension_listener: true
+
+example_test.post_example:
+    path: '/examples.{_format}'
+    methods: POST
+    controller: 'example_test.example_controller::postAction'
+    format: json
+    requirements:
+        _format: json|csv
+    options:
+        api_dimension_listener: true
+
+example_test.post_example_trigger:
+    path: '/examples/{id}.{_format}'
+    methods: POST
+    controller: 'example_test.example_controller::postTriggerAction'
+    format: json
+    requirements:
+        _format: json|csv
+    options:
+        api_dimension_listener: true
+
+example_test.put_example:
+    path: '/examples/{id}.{_format}'
+    methods: PUT
+    controller: 'example_test.example_controller::putAction'
+    format: json
+    requirements:
+        _format: json|csv
+    options:
+        api_dimension_listener: true
+
+example_test.delete_example:
+    path: '/examples/{id}.{_format}'
+    methods: DELETE
+    controller: 'example_test.example_controller::deleteAction'
+    format: json
+    requirements:
+        _format: json|csv
+    options:
+        api_dimension_listener: true

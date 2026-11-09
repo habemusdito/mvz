@@ -1,0 +1,108 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Render a FolderList with Folder components inside 1`] = `
+<div>
+  <ul
+    class="folderList"
+  >
+    <li>
+      <div
+        class="folder"
+        role="button"
+        tabindex="0"
+      >
+        <div
+          class="iconContainer"
+        >
+          <span
+            aria-label="su-folder"
+            class="su-folder"
+          />
+        </div>
+        <div
+          class="description"
+        >
+          <h5
+            class="title"
+          >
+            This is a folder
+          </h5>
+          <div
+            class="info"
+          >
+            3 Objects
+          </div>
+        </div>
+      </div>
+    </li>
+    <li>
+      <div
+        class="folder"
+        role="button"
+        tabindex="0"
+      >
+        <div
+          class="iconContainer"
+        >
+          <span
+            aria-label="su-folder"
+            class="su-folder"
+          />
+        </div>
+        <div
+          class="description"
+        >
+          <h5
+            class="title"
+          >
+            This is a folder
+          </h5>
+          <div
+            class="info"
+          >
+            2 Objects
+          </div>
+        </div>
+      </div>
+    </li>
+    <li>
+      <div
+        class="folder"
+        role="button"
+        tabindex="0"
+      >
+        <div
+          class="iconContainer"
+        >
+          <span
+            aria-label="su-folder"
+            class="su-folder"
+          />
+        </div>
+        <div
+          class="description"
+        >
+          <h5
+            class="title"
+          >
+            This is a folder
+          </h5>
+          <div
+            class="info"
+          >
+            0 Objects
+          </div>
+        </div>
+      </div>
+    </li>
+  </ul>
+</div>
+`;
+
+exports[`Render an empty FolderList 1`] = `
+<div>
+  <ul
+    class="folderList"
+  />
+</div>
+`;

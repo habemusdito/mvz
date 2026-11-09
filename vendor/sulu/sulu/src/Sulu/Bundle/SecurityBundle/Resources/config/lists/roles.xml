@@ -1,0 +1,78 @@
+<?xml version="1.0" ?>
+<list xmlns="http://schemas.sulu.io/list-builder/list">
+    <key>roles</key>
+
+    <properties>
+        <property
+            name="id"
+            visibility="no"
+            searchability="yes"
+            translation="sulu_admin.id"
+        >
+            <field-name>id</field-name>
+            <entity-name>%sulu.model.role.class%</entity-name>
+        </property>
+
+        <property
+            name="name"
+            visibility="always"
+            searchability="yes"
+            translation="sulu_admin.name"
+        >
+            <field-name>name</field-name>
+            <entity-name>%sulu.model.role.class%</entity-name>
+        </property>
+
+        <property
+            name="key"
+            visibility="no"
+            searchability="yes"
+            translation="sulu_admin.key"
+        >
+            <field-name>key</field-name>
+            <entity-name>%sulu.model.role.class%</entity-name>
+
+            <filter type="text" />
+        </property>
+
+        <property name="anonymous" visibility="never">
+            <field-name>anonymous</field-name>
+            <entity-name>%sulu.model.role.class%</entity-name>
+        </property>
+
+        <property
+            name="system"
+            visibility="always"
+            searchability="yes"
+            translation="sulu_security.system"
+        >
+            <field-name>system</field-name>
+            <entity-name>%sulu.model.role.class%</entity-name>
+
+            <filter type="text" />
+        </property>
+
+        <property
+            name="created"
+            visibility="yes"
+            translation="sulu_admin.created"
+        >
+            <field-name>created</field-name>
+            <entity-name>%sulu.model.role.class%</entity-name>
+
+            <transformer type="datetime"/>
+            <filter type="datetime" />
+        </property>
+
+        <property
+            name="changed"
+            visibility="no"
+            translation="sulu_admin.changed"
+        >
+            <field-name>changed</field-name>
+            <entity-name>%sulu.model.role.class%</entity-name>
+            <transformer type="datetime"/>
+            <filter type="datetime" />
+        </property>
+    </properties>
+</list>

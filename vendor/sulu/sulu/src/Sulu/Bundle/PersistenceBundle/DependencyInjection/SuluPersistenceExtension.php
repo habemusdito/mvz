@@ -1,0 +1,50 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Bundle\PersistenceBundle\DependencyInjection;
+
+use Doctrine\Bundle\MigrationsBundle\DoctrineMigrationsBundle;
+use Sulu\Component\Persistence\EventSubscriber\ORM\LegacyLengthSubscriber;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+
+/**
+ * This is the class that loads and manages your bundle configuration.
+ */
+class SuluPersistenceExtension extends Extension
+{
+    public function load(array $configs, ContainerBuilder $container): void
+    {
+        $configuration = new Configuration();
+        $config = $this->processConfiguration($configuration, $configs);
+
+        $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
+        $loader->load('services.php');
+
+        $container->setParameter('sulu.persistence.legacy_length', (bool) $config['legacy_length']);
+
+        if ($config['legacy_length']) {
+            $definition = new Definition(LegacyLengthSubscriber::class);
+            $definition->addTag('doctrine.event_listener', ['event' => 'loadClassMetadata']);
+            $container->setDefinition('sulu.persistence.event_subscriber.orm.legacy_length', $definition);
+        }
+
+        /** @var array<string, class-string> $bundles */
+        $bundles = $container->getParameter('kernel.bundles');
+
+        if (\in_array(DoctrineMigrationsBundle::class, $bundles, true)) {
+            $loader->load('services_migrations.php');
+        }
+    }
+}

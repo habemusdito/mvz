@@ -1,0 +1,40 @@
+parameters:
+    # Fallback values (used if environmental variables are not set)
+    env(DATABASE_URL): mysql://root:ChangeMe@127.0.0.1:3306/sulu?serverVersion=8.4.11&charset=utf8mb4
+
+framework:
+    secret: secret
+    router: { resource: '%kernel.project_dir%/config/routing.yml' }
+    test: ~
+    profiler:
+        enabled: false
+    mailer:
+        dsn: 'null://null'
+        message_bus: false # else messenger component duplicates the message: https://github.com/symfony/symfony/issues/48004#issuecomment-2476617713
+
+    lock: 'flock://%kernel.project_dir%/var/lock'
+
+doctrine:
+    orm:
+        naming_strategy: doctrine.orm.naming_strategy.underscore
+    dbal:
+        url: '%env(resolve:DATABASE_URL)%'
+        dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+
+jms_serializer:
+    metadata:
+        debug: '%kernel.debug%'
+
+flysystem:
+    storages:
+        default.storage:
+            adapter: 'local'
+            options:
+                directory: '%kernel.project_dir%/var/uploads'
+
+cmsig_seal:
+    # "TEST_TOKEN" is typically set by ParaTest
+    index_name_prefix: 'test_%env(default::TEST_TOKEN)%'
+    engines:
+        default:
+            adapter: 'memory://'

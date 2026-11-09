@@ -1,0 +1,31 @@
+@import '../../containers/Application/colors.scss';
+
+$textareaDisabledColor: $gray;
+$textareaDisabledBackgroundColor: $wildSand;
+$textareaBorderColor: $silver;
+$textareaErrorBorderColor: $persianRed;
+$textareaBackgroundColor: $white;
+$textareaColor: $black;
+
+.text-area {
+    width: 100%;
+    min-height: 75px;
+    background-color: $textareaBackgroundColor;
+    color: $textareaColor;
+    padding: 10px;
+    border: 1px solid $textareaBorderColor;
+    border-radius: 3px;
+    resize: vertical;
+    font-size: 12px;
+    line-height: 20px;
+
+    &.error {
+        border-color: $textareaErrorBorderColor;
+    }
+
+    &.disabled {
+        color: $textareaDisabledColor;
+        background-color: $textareaDisabledBackgroundColor;
+        -webkit-text-fill-color: $textareaDisabledColor; /* Necessary for Safari and iOS */
+    }
+}

@@ -1,0 +1,47 @@
+@import '../../containers/Application/colors.scss';
+
+$urlBackgroundColor: $white;
+$urlBorderColor: $silver;
+$urlButtonColor: $dustyGray;
+$urlInputColor: $black;
+$urlErrorBorderColor: $persianRed;
+$urlHeight: 30px;
+$urlBorderWidth: 1px;
+$urlInputDisabledColor: $gray;
+$urlInputDisabledBackgroundColor: $wildSand;
+
+.url {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: $urlHeight;
+    border-radius: 3px;
+    border: $urlBorderWidth solid $urlBorderColor;
+    background-color: $urlBackgroundColor;
+    font-size: 12px;
+    overflow: hidden;
+
+    &.error {
+        border-color: $urlErrorBorderColor;
+    }
+
+    .protocols {
+        color: $urlButtonColor;
+        border-right: 1px solid $urlBorderColor;
+    }
+
+    input {
+        color: $urlInputColor;
+        flex-grow: 1;
+        border: none;
+        padding: 0 10px;
+        width: 0;
+        height: calc($urlHeight - 2 * $urlBorderWidth);
+
+        &:disabled {
+            color: $urlInputDisabledColor;
+            background-color: $urlInputDisabledBackgroundColor;
+            -webkit-text-fill-color: $urlInputDisabledColor; /* Necessary for Safari and iOS */
+        }
+    }
+}

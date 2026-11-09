@@ -1,0 +1,86 @@
+@import './variables.scss';
+@import '../../containers/Application/colors.scss';
+
+$color: $silver;
+$headerColor: $white;
+$activeColor: $wildSand;
+$backgroundColor: $pickledBluewood;
+$darkBackgroundColor: $ebonyClay;
+$hoverColor: $shakespeare;
+
+.navigation {
+    width: $navigationWidth;
+    background-color: $backgroundColor;
+    color: $color;
+    min-height: 100%;
+    max-height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    color: $headerColor;
+    flex: 0 0 60px;
+    height: 60px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: $darkBackgroundColor;
+    border-bottom: 1px solid $backgroundColor;
+}
+
+.logo {
+    color: inherit;
+    flex: 0 0 auto;
+    display: block;
+    font-size: 90px;
+    line-height: 1;
+    text-decoration: none;
+    transform: translateY(2px); /* visual centering the logo */
+}
+
+.pin {
+    flex: 0 0 auto;
+    color: $color;
+    cursor: pointer;
+    padding: 20px;
+    margin-right: -20px;
+    border: 0;
+    background-color: transparent;
+    transition: .3s;
+
+    &.active {
+        color: $activeColor;
+
+        &:hover {
+            transform: rotateZ(180deg);
+        }
+    }
+
+    &:hover,
+    &:focus {
+        color: $hoverColor;
+    }
+}
+
+.pin-icon {
+    display: block;
+    line-height: 1;
+    font-size: 20px;
+}
+
+.items {
+    position: relative;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.footer {
+    flex: 0 0 auto;
+    background: $darkBackgroundColor;
+    min-height: 60px;
+    padding-inline: 20px;
+    border-top: 1px solid $backgroundColor;
+}

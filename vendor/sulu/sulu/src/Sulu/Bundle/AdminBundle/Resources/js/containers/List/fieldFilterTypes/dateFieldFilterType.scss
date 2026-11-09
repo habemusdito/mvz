@@ -1,0 +1,13 @@
+@import '../../../containers/Application/colors.scss';
+
+$labelColor: $scorpion;
+
+.label {
+    display: block;
+    color: $labelColor;
+    margin-bottom: 5px;
+}
+
+.date {
+    margin-bottom: 10px;
+}

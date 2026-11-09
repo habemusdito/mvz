@@ -1,0 +1,10 @@
+@import '../../components/Toolbar/items.scss';
+
+.icons,
+.locale {
+    display: inline-block;
+}
+
+.locale {
+    border-left: $itemsContainerBorderLight;
+}

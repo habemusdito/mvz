@@ -1,0 +1,210 @@
+@import '../../containers/Application/colors.scss';
+@import './variables.scss';
+
+$borderRadius: 3px;
+$fontSize: 12px;
+$dropdownFontSize: 10px;
+
+$primaryBackground: $shakespeare;
+$primaryColor: $white;
+$primaryDisabledColor: $silver;
+
+$secondaryBorder: $silver;
+$secondaryBackground: $wildSand;
+$secondaryColor: $black;
+$secondaryDisabledColor: $silver;
+
+$linkColor: $black;
+$linkDisabledColor: $silverChalice;
+
+$textColor: $black;
+$textDisabledColor: $silverChalice;
+
+$iconFontSize: 14px;
+$iconBackgroundColorActive: $doveGray;
+$iconBackgroundColorHover: $mercury;
+$iconColorActive: $white;
+
+.button {
+    position: relative;
+    white-space: nowrap;
+    display: inline-flex;
+    justify-content: center;
+
+    &:disabled {
+        cursor: default;
+    }
+}
+
+.primary,
+.secondary {
+    font-size: $fontSize;
+    border: 1px solid;
+    border-radius: $borderRadius;
+    line-height: 28px;
+    cursor: pointer;
+    text-align: center;
+    min-width: 140px;
+    padding: 0 40px;
+
+    .button-icon,
+    .dropdown-icon {
+        display: inline-flex;
+        align-items: center;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+    }
+
+    .button-icon {
+        left: 10px;
+    }
+
+    .dropdown-icon {
+        left: auto;
+        right: 10px;
+        font-size: $dropdownFontSize;
+    }
+}
+
+.primary {
+    border-color: $primaryBackground;
+    background: $primaryBackground;
+    color: $primaryColor;
+
+    &:disabled {
+        border-color: $primaryDisabledColor;
+        background-color: $primaryDisabledColor;
+    }
+}
+
+.secondary {
+    border-color: $secondaryBorder;
+    background: $secondaryBackground;
+    color: $secondaryColor;
+
+    &:disabled {
+        color: $secondaryDisabledColor;
+    }
+}
+
+.link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: $fontSize;
+    color: $linkColor;
+
+    .button-text {
+        text-decoration: underline;
+    }
+
+    .button-icon + .button-text {
+        margin-left: 10px;
+    }
+
+    .dropdown-icon {
+        margin-left: 10px;
+        font-size: $dropdownFontSize;
+    }
+
+    &:disabled {
+        color: $linkDisabledColor;
+    }
+}
+
+.text {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: $fontSize;
+    color: $textColor;
+
+    .button-icon + .button-text {
+        margin-left: 10px;
+    }
+
+    .dropdown-icon {
+        margin-left: 10px;
+        font-size: $dropdownFontSize;
+    }
+
+    &:disabled {
+        color: $textDisabledColor;
+    }
+}
+
+.icon {
+    background: none;
+    min-width: 30px;
+    height: 30px;
+    line-height: 28px;
+    border-radius: $iconBorderRadius;
+    border: 1px solid $iconBorderColor;
+    color: $iconBorderColor;
+    cursor: pointer;
+    font-size: $iconFontSize;
+    padding: 0 5px;
+
+    &:hover:not(:disabled) {
+        background-color: $silver;
+
+        &.active {
+            background-color: $scorpion;
+        }
+    }
+
+    &:disabled {
+        border-color: $iconDisabledColor;
+        color: $iconDisabledColor;
+    }
+
+    &.active {
+        background-color: $iconBorderColor;
+        color: $iconColorActive;
+    }
+
+    &.has-text {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .button-icon + .button-text {
+        font-size: $fontSize;
+        margin-left: 10px;
+    }
+
+    .button-icon,
+    .dropdown-icon {
+        line-height: 28px;
+    }
+
+    .dropdown-icon {
+        margin-left: 5px;
+        font-size: $dropdownFontSize;
+    }
+}
+
+.loader {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.loading {
+    background-color: transparent;
+    border-color: transparent;
+
+    .button-text {
+        opacity: 0;
+    }
+
+    .loader {
+        display: flex;
+    }
+}

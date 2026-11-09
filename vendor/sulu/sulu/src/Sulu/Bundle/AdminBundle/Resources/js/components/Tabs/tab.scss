@@ -1,0 +1,80 @@
+@import '../../containers/Application/colors.scss';
+@import './variables.scss';
+
+$tabTextColor: $black;
+$tabUnderlineBackgroundColor: $black;
+$buttonHorizontalPadding: 20px;
+$buttonSmallHorizontalPadding: 10px;
+
+.tab {
+    position: relative;
+
+    &::after {
+        content: '';
+        width: calc(100% - $buttonHorizontalPadding * 2);
+        height: 2px;
+        background-color: $tabUnderlineBackgroundColor;
+        position: absolute;
+        left: $buttonHorizontalPadding;
+        bottom: 0;
+        transform: scaleX(0);
+        transition: transform .15s ease-in-out;
+    }
+
+    button {
+        height: $tabMenuHeight;
+        cursor: pointer;
+        padding: 10px $buttonHorizontalPadding;
+        color: $tabTextColor;
+        background-color: transparent;
+        font-size: 12px;
+        border: 0;
+        white-space: nowrap;
+
+        /* Needed because we want to prevent the jump on font-weight changes */
+        &::after {
+            display: block;
+            content: attr(title);
+            font-weight: bold;
+            height: 1px;
+            color: transparent;
+            overflow: hidden;
+            visibility: hidden;
+        }
+    }
+
+    &.selected {
+        button {
+            font-weight: bold;
+            cursor: default;
+        }
+
+        &::after {
+            transform: scaleX(1);
+        }
+    }
+
+    &.hidden {
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    &.inline {
+        button {
+            padding: 10px $buttonSmallHorizontalPadding;
+        }
+
+        &::after {
+            width: calc(100% - $buttonSmallHorizontalPadding * 2);
+            left: $buttonSmallHorizontalPadding;
+        }
+    }
+}
+
+.badges {
+    margin-left: 4px;
+    display: inline-flex;
+    vertical-align: text-top;
+    gap: 1px;
+    transform: translateY(-5px);
+}

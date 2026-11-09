@@ -1,0 +1,37 @@
+@import '../../containers/Application/colors.scss';
+
+$popoverBackgroundLightColor: $wildSand;
+$popoverBackgroundDarkColor: $mirage;
+$popoverTextLightColor: $blueZodiac;
+$popoverTextDarkColor: $white;
+$popoverTextLightColorDisabled: $silver;
+$popoverTextDarkColorDisabled: $stormGray;
+$popoverShadowColor: $silver;
+
+.popover {
+    position: relative;
+}
+
+.content-container {
+    /* Fix popover calculation for children with negative margins */
+    overflow: hidden;
+}
+
+.light {
+    background-color: $popoverBackgroundLightColor;
+    color: $popoverTextLightColor;
+    box-shadow: 2px 6px 12px 0 rgba($popoverShadowColor, .5);
+
+    &:disabled {
+        color: $popoverTextLightColorDisabled;
+    }
+}
+
+.dark {
+    background-color: $popoverBackgroundDarkColor;
+    color: $popoverTextDarkColor;
+
+    &:disabled {
+        color: $popoverTextDarkColorDisabled;
+    }
+}

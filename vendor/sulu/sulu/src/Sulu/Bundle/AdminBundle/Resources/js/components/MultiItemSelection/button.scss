@@ -1,0 +1,49 @@
+@import '../../containers/Application/colors.scss';
+
+$buttonTextColor: $scorpion;
+$buttonTextColorActive: $white;
+$buttonBackgroundColor: $alto;
+$buttonBackgroundColorActive: $shakespeare;
+$buttonMargin: 2px;
+
+.button {
+    width: 40px;
+    color: $buttonTextColor;
+    background-color: $buttonBackgroundColor;
+    border: 0;
+    cursor: pointer;
+    font-size: 14px;
+
+    &.left {
+        &:hover {
+            color: $buttonTextColorActive;
+            background-color: $buttonBackgroundColorActive;
+        }
+
+        margin-right: $buttonMargin;
+    }
+
+    &.right {
+        margin-left: $buttonMargin;
+    }
+
+    &.has-options {
+        width: 60px;
+
+        .icon {
+            margin-right: 10px;
+        }
+
+        &.has-label {
+            align-items: center;
+            display: flex;
+            padding: 0 10px;
+            width: auto;
+        }
+    }
+}
+
+.label {
+    font-size: 12px;
+    margin-right: 10px;
+}

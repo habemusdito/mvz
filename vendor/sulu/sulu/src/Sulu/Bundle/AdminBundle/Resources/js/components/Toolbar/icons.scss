@@ -1,0 +1,17 @@
+@import './toolbar.scss';
+
+.icons {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    vertical-align: top;
+}
+
+.icon {
+    display: inline-block;
+    padding: 0 20px 0 0;
+
+    &:last-child {
+        padding: 0;
+    }
+}

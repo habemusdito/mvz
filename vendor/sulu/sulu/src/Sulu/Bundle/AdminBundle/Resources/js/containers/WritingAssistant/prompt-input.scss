@@ -1,0 +1,73 @@
+@import '../Application/colors.scss';
+
+.input-container {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background-color: $white;
+    padding: 40px;
+}
+
+.label {
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.options {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.expert-select {
+    min-width: 10vh;
+    padding-right: 8px;
+    border-right: 1px solid $silver;
+}
+
+.single-expert {
+    min-width: 10vh;
+    padding-right: 8px;
+    border-right: 1px solid $silver;
+    line-height: 30px;
+}
+
+.content-context-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    margin-right: auto;
+}
+
+.info-icon {
+    font-size: 12px;
+    color: $silverChalice;
+}
+
+.panel {
+    background-color: $wildSand;
+    border-radius: 3px;
+    padding: 12px;
+}
+
+.predefined-prompts {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+
+    /* the secondary skin shares the panel background, so the prompts would melt into it */
+    button {
+        background-color: $white;
+    }
+}
+
+.input {
+    display: flex;
+    gap: 8px;
+}

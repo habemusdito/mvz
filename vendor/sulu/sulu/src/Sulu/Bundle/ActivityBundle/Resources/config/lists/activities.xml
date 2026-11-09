@@ -1,0 +1,106 @@
+<?xml version="1.0" ?>
+<list xmlns="http://schemas.sulu.io/list-builder/list">
+    <key>activities</key>
+
+    <properties>
+        <property
+            name="timestamp"
+            translation="sulu_admin.timestamp"
+            visibility="always"
+            searchability="never"
+            sortable="false"
+            width="shrink"
+        >
+            <field-name>timestamp</field-name>
+            <entity-name>%sulu.model.activity.class%</entity-name>
+
+            <transformer type="datetime">
+                <params>
+                    <param name="skin" value="light"/>
+                    <param name="format" value="relative"/>
+                </params>
+            </transformer>
+        </property>
+
+        <property
+            name="type"
+            translation="sulu_admin.type"
+            visibility="always"
+            searchability="never"
+            sortable="false"
+            width="shrink"
+        >
+            <field-name>type</field-name>
+            <entity-name>%sulu.model.activity.class%</entity-name>
+
+            <transformer type="icon">
+                <params>
+                    <param name="skin" value="dark"/>
+                    <param name="default" value="su-pen"/>
+
+                    <param name="mapping" type="collection">
+                        <param name="created" value="su-plus"/>
+                        <param name="modified" value="su-pen"/>
+                        <param name="removed" value="su-trash-alt"/>
+                        <param name="restored" value="su-process"/>
+                        <param name="cache_cleared" value="su-clean"/>
+                        <param name="moved" value="su-arrows-alt"/>
+                        <param name="copied" value="su-copy"/>
+                        <param name="published" value="su-publish"/>
+                        <param name="workflow_transition.publish" value="su-publish"/>
+                        <param name="unpublished" value="su-unpublish"/>
+                        <param name="workflow_transition.unpublish" value="su-unpublish"/>
+                        <param name="merged" value="su-merge"/>
+                        <param name="enabled" value="su-toggler-enabled"/>
+                        <param name="locked" value="su-lock"/>
+                        <param name="unlocked" value="su-lock-open"/>
+                        <param name="draft_removed" value="su-trash-alt"/>
+                        <param name="workflow_transition.remove_draft" value="su-trash-alt"/>
+                        <param name="children_reordered" value="su-exchange"/>
+                        <param name="translation_added" value="su-language-plus"/>
+                        <param name="translation_copied" value="su-language-copy"/>
+                        <param name="translation_removed" value="su-language-minus"/>
+                        <param name="keyword_added" value="su-tag-plus"/>
+                        <param name="keyword_modified" value="su-tag-pen"/>
+                        <param name="keyword_removed" value="su-tag-minus"/>
+                        <param name="contact_added" value="su-user-plus"/>
+                        <param name="contact_removed" value="su-user-minus"/>
+                        <param name="media_added" value="su-image-plus"/>
+                        <param name="media_removed" value="su-image-minus"/>
+                        <param name="route_removed" value="su-link-minus"/>
+                        <param name="crop_modified" value="su-crop-pen"/>
+                        <param name="crop_removed" value="su-crop-minus"/>
+                        <param name="preview_image_modified" value="su-image-pen"/>
+                        <param name="preview_image_removed" value="su-image-minus"/>
+                        <param name="version_added" value="su-process-plus"/>
+                        <param name="version_removed" value="su-process-minus"/>
+                        <param name="version_restored" value="su-process"/>
+                        <param name="default_snippet_modified" value="su-snippet-pen"/>
+                        <param name="default_snippet_removed" value="su-snippet-minus"/>
+                        <param name="password_resetted" value="su-lock-check"/>
+                    </param>
+                </params>
+            </transformer>
+        </property>
+
+        <!-- Visibility of this property is set to 'yes' in the ActivitiesListMetadataVisitor based on the given metadata-options -->
+        <property
+            name="resource"
+            translation="sulu_admin.resource"
+            visibility="never"
+            searchability="never"
+            sortable="false"
+            width="shrink"
+        />
+
+        <property
+            name="description"
+            translation="sulu_admin.description"
+            visibility="always"
+            searchability="never"
+            sortable="false"
+        >
+            <transformer type="html"/>
+        </property>
+    </properties>
+</list>

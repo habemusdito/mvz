@@ -1,0 +1,47 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Render a Masonry container with items 1`] = `
+<div>
+  <ul
+    class="masonry"
+    style="position: relative; height: 0px;"
+  >
+    <li
+      style="margin-bottom: 30px; position: absolute; left: 0px; top: 0px;"
+    >
+      <div>
+        <img
+          src="http://lorempixel.com/300/200"
+        />
+      </div>
+    </li>
+    <li
+      style="margin-bottom: 30px; position: absolute; left: 0px; top: 0px;"
+    >
+      <div>
+        <img
+          src="http://lorempixel.com/300/200"
+        />
+      </div>
+    </li>
+    <li
+      style="margin-bottom: 30px; position: absolute; left: 0px; top: 0px;"
+    >
+      <div>
+        <img
+          src="http://lorempixel.com/300/200"
+        />
+      </div>
+    </li>
+  </ul>
+</div>
+`;
+
+exports[`Render an empty Masonry container 1`] = `
+<div>
+  <ul
+    class="masonry"
+    style="position: relative; height: 0px;"
+  />
+</div>
+`;

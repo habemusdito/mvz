@@ -1,0 +1,110 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Generate link 1`] = `
+<div>
+  <div
+    class="container"
+  >
+    <div>
+      <label
+        class="label"
+      >
+        sulu_preview.copy_preview_link
+      </label>
+      <div
+        class="inputContainer"
+      >
+        <input
+          class="input"
+          readonly=""
+          value="/admin/p/123-123-123"
+        />
+        <button
+          class="button primary hasText copyButton"
+          type="button"
+        >
+          <span
+            class="buttonText"
+          >
+            sulu_preview.copy
+          </span>
+        </button>
+      </div>
+    </div>
+    <div
+      class="revoke"
+    >
+      <button
+        class="revokeButton"
+        type="button"
+      >
+        sulu_preview.revoke
+      </button>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Render popover when no link is available 1`] = `
+<div>
+  <div
+    class="container"
+  >
+    <button
+      class="button primary hasText"
+      type="button"
+    >
+      <span
+        class="buttonText"
+      >
+        sulu_preview.generate_link
+      </span>
+    </button>
+  </div>
+</div>
+`;
+
+exports[`Render popover when preview link is available and copy link to clipboard 1`] = `
+<div>
+  <div
+    class="container"
+  >
+    <div>
+      <label
+        class="label"
+      >
+        sulu_preview.copy_preview_link
+      </label>
+      <div
+        class="inputContainer"
+      >
+        <input
+          class="input"
+          readonly=""
+          value="/admin/p/123-123-123"
+        />
+        <button
+          class="button primary hasText copyButton"
+          type="button"
+        >
+          <span
+            class="buttonText"
+          >
+            sulu_preview.copy
+          </span>
+        </button>
+      </div>
+    </div>
+    <div
+      class="revoke"
+    >
+      <button
+        class="revokeButton"
+        type="button"
+      >
+        sulu_preview.revoke
+      </button>
+    </div>
+  </div>
+</div>
+`;

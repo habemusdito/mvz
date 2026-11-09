@@ -1,0 +1,108 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Iban should render 1`] = `
+<DocumentFragment>
+  <div
+    class="input default left"
+  >
+    <div
+      class="prependedContainer default"
+    >
+      <span
+        aria-label="su-credit-card"
+        class="su-credit-card icon default"
+      />
+    </div>
+    <input
+      type="text"
+      value=""
+    />
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Iban should render error 1`] = `
+<DocumentFragment>
+  <div
+    class="input default left error"
+  >
+    <div
+      class="prependedContainer default"
+    >
+      <span
+        aria-label="su-credit-card"
+        class="su-credit-card icon default"
+      />
+    </div>
+    <input
+      type="text"
+      value=""
+    />
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Iban should render when disabled 1`] = `
+<DocumentFragment>
+  <div
+    class="input default left disabled"
+  >
+    <div
+      class="prependedContainer default"
+    >
+      <span
+        aria-label="su-credit-card"
+        class="su-credit-card icon default"
+      />
+    </div>
+    <input
+      disabled=""
+      type="text"
+      value="AT61 1904 3002 3457 3201"
+    />
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Iban should render with placeholder 1`] = `
+<DocumentFragment>
+  <div
+    class="input default left"
+  >
+    <div
+      class="prependedContainer default"
+    >
+      <span
+        aria-label="su-credit-card"
+        class="su-credit-card icon default"
+      />
+    </div>
+    <input
+      placeholder="My placeholder"
+      type="text"
+      value=""
+    />
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Iban should render with value 1`] = `
+<DocumentFragment>
+  <div
+    class="input default left"
+  >
+    <div
+      class="prependedContainer default"
+    >
+      <span
+        aria-label="su-credit-card"
+        class="su-credit-card icon default"
+      />
+    </div>
+    <input
+      type="text"
+      value="AT61 1904 3002 3457 3201"
+    />
+  </div>
+</DocumentFragment>
+`;

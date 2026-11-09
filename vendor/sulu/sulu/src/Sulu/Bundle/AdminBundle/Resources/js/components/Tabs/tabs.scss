@@ -1,0 +1,47 @@
+@import '../../containers/Application/colors.scss';
+@import './variables.scss';
+
+.tabs {
+    display: flex;
+    background-color: $tabMenuBackgroundColor;
+    padding: 0 40px;
+
+    &.inline {
+        padding: 0 20px;
+        background-color: $tabMenuTransparentBackgroundColor;
+    }
+
+    &.nested {
+        border-radius: 3px 3px 0 0;
+        padding: 0;
+    }
+}
+
+.tabs-container-wrapper {
+    flex: 1 1 auto;
+    position: relative;
+    height: $tabMenuHeight;
+    overflow: hidden;
+}
+
+.button {
+    flex: 0 0 auto;
+    border: none;
+    outline: none;
+    background: none;
+    box-shadow: none;
+    cursor: pointer;
+    padding: 10px;
+}
+
+.tabs-container {
+    position: absolute;
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    & > li {
+        display: block;
+    }
+}

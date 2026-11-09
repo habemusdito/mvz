@@ -1,0 +1,42 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Component\Persistence\Repository\ORM;
+
+use Doctrine\ORM\QueryBuilder;
+
+/**
+ * @deprecated since Sulu 2.6, we recommend building your own order-by handling logic instead of using this trait.
+ *
+ * Trait for handling order-by functionality of repositories.
+ */
+trait OrderByTrait
+{
+    /**
+     * Function adds order-by to querybuilder based on $sortBy-data given.
+     *
+     * @param string $alias
+     * @param array<string, string> $sortBy
+     *
+     * @return void
+     */
+    protected function addOrderBy(QueryBuilder $queryBuilder, $alias, array $sortBy = [])
+    {
+        foreach ($sortBy as $field => $order) {
+            // if no relation is defined add alias by default
+            if (false === \strpos($field, '.')) {
+                $field = $alias . '.' . $field;
+            }
+
+            $queryBuilder->addOrderBy($field, $order);
+        }
+    }
+}

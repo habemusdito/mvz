@@ -1,0 +1,32 @@
+@import '../../containers/Application/colors.scss';
+
+$indicatorDraftBackgroundColor: $gold;
+$indicatorPublishedBackgroundColor: $mantis;
+$indicatorBorderColor: $white;
+$indicatorDimension: 18px;
+$indicatorOverlap: 10px;
+
+.publish-indicator {
+    white-space: nowrap;
+}
+
+.published,
+.draft {
+    display: inline-block;
+    border: 2px $indicatorBorderColor solid;
+    border-radius: 50%;
+    height: $indicatorDimension;
+    width: $indicatorDimension;
+}
+
+.published + .draft {
+    margin-left: -$indicatorOverlap;
+}
+
+.draft {
+    background-color: $indicatorDraftBackgroundColor;
+}
+
+.published {
+    background-color: $indicatorPublishedBackgroundColor;
+}
