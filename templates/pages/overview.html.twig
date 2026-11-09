@@ -8,7 +8,7 @@
             <div class="mx-auto max-w-screen-md lg:max-w-screen-xl py-2 px-4">
                 <div class="w-full xl:w-1/2 ps-4 lg:ps-0">
                     <h1 class="eyebrow animate-rise text-third mb-3">{{ content.header_title }}</h1>
-                    {% include 'includes/highlight.html.twig' with { text: content.header_subtitle } %}
+                    <twig:Highlight :text="content.header_subtitle" />
                     <p class="lg:w-2/3 mt-6 md:text-lg text-muted-foreground animate-rise [animation-delay:160ms]">{{ content.header_description }}</p>
                 </div>
             </div>
@@ -21,50 +21,22 @@
             <h2 class="font-heading text-gray-900 text-4xl px-4 pt-4 uppercase">Praxen</h2>
         </div>
         <div class="flex flex-wrap justify-center gap-8">
-            <div class="w-full md:w-[calc((100%-6rem)/3)]">
-                <div class="relative bg-cyan-50 p-6 border border-third-300 rounded-xl shadow-xl">
-                    {{ ux_icon('tabler:stethoscope', {class: 'w-8 h-8 mb-4'}) }}
-                    <h3 class="font-heading text-lg mb-3"><a href="#" class="hover:text-primary">Privatpraxis für Prävention und Regeneration</a></h3>
-                    <span class="text-sm">Selbstzahler & Privatpatienten | Dr. med Thea Motsch - Fachärztin für Allgemeinmedizin, Naturheilverfahren, Homöopathie</span>
-                    <div class="flex justify-end mt-4">
-                        <a href="/praxis/privatpraxis-fuer-praevention-und-regeneration" class="btn-third inline-flex items-end">
-                            mehr Info
-                            {{ ux_icon('tabler:arrow-bar-right', {class: 'w-6 h-6 ms-4'}) }}
-                        </a>
+            {% for page in content.pages %}
+                <div class="w-full md:w-[calc((100%-6rem)/3)]">
+                    <div class="relative bg-cyan-50 p-6 border border-third-300 rounded-xl shadow-xl">
+                        {{ ux_icon('tabler:stethoscope', {class: 'w-8 h-8 mb-4'}) }}
+                        <h3 class="font-heading text-lg mb-3"><a href="#" class="hover:text-primary">{{page.title}}</a></h3>
+                        <span class="text-sm">{{ page.excerptTitle }}</span>
+                        <div class="flex justify-end mt-4">
+                            <a href="{{ page.url }}" class="btn-third inline-flex items-end">
+                                mehr Info
+                                {{ ux_icon('tabler:arrow-bar-right', {class: 'w-6 h-6 ms-4'}) }}
+                            </a>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="w-full md:w-[calc((100%-6rem)/3)]">
-                <div class="relative bg-cyan-50 p-6 border border-third-300 rounded-xl shadow-xl">
-                    {{ ux_icon('tabler:stethoscope', {class: 'w-8 h-8 mb-4'}) }}
-                    <h3 class="font-heading text-lg mb-3"><a href="#" class="hover:text-primary">Allgemeinmedizinische Hausarztpraxis</a></h3>
-                    <span class="text-sm">Alle Kassen</span>
-                    <div class="flex justify-end mt-4">
-                        <a href="#" class="btn-third inline-flex items-end">
-                            mehr Info
-                            {{ ux_icon('tabler:arrow-bar-right', {class: 'w-6 h-6 ms-4'}) }}
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="w-full md:w-[calc((100%-6rem)/3)]">
-                <div class="relative bg-cyan-50 p-6 border border-third-300 rounded-xl shadow-xl">
-                    {{ ux_icon('tabler:stethoscope', {class: 'w-8 h-8 mb-4'}) }}
-                    <h3 class="font-heading text-lg mb-3"><a href="#" class="hover:text-primary">Laborärztliche Praxis</a></h3>
-                    <span class="text-sm">Die ärztliche Beratung kann Vor-Ort oder als Online-Sprechstunde per Telefon oder Video erfolgen</span>
-                    <div class="flex justify-end mt-4">
-                        <a href="#" class="btn-third inline-flex items-end">
-                            mehr Info
-                            {{ ux_icon('tabler:arrow-bar-right', {class: 'w-6 h-6 ms-4'}) }}
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-
+            {% endfor %}
         </div>
-
-
     </div>
 
 {% endblock %}

@@ -30,4 +30,17 @@
 @import "./css/buttons.css";
 @import "tailwindcss";
 
+/* assets/vendor ist in .gitignore und wird von Tailwind sonst nicht gescannt (Klassen des Datepickers für /blutentnahme) */
+@source "../vendor/flowbite-datepicker";
+
+/* Kalender /blutentnahme: flowbite-datepicker nutzt Flowbite-Design-Tokens (bg-brand, text-fg-disabled …), die hier nicht eingebunden sind */
+[data-etermin-calendar] {
+    .datepicker-picker { @apply bg-white rounded-xl border border-gray-200 p-4; }
+    .datepicker-cell.day { @apply rounded-lg m-0.5; }
+    .datepicker-cell.day:not(.disabled) { @apply bg-third-100 text-third-700 font-bold; }
+    .datepicker-cell.day:not(.disabled):hover { @apply bg-third-200; }
+    .datepicker-cell.day.disabled { @apply text-gray-300 font-normal; }
+    .datepicker-cell.day.selected, .datepicker-cell.day.selected:hover { @apply bg-third text-white; }
+}
+
 

@@ -16,6 +16,10 @@ return [
         'path' => './assets/app.js',
         'entrypoint' => true,
     ],
+    'etermin' => [
+        'path' => './assets/etermin.js',
+        'entrypoint' => true,
+    ],
     'flowbite' => [
         'version' => '4.0.2',
     ],

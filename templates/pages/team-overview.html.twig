@@ -4,25 +4,14 @@
 {% set praxisteam = content.pages|filter(p => p.excerptType == 'praxis') %}
 
 {% block content %}
-    {#
-    <div class="container grid items-center gap-12 pt-16 md:grid-cols-12 md:pt-24">
-        <div class="md:col-span-6">
-            <h1 class="eyebrow animate-rise text-third mb-3">{{ content.header_title }}</h1>
-            {% include 'includes/highlight.html.twig' with { text: content.header_subtitle } %}
-            <p class="mt-6 text-lg text-muted-foreground animate-rise [animation-delay:160ms]">{{ content.header_description }}</p>
-        </div>
-        <div class="md:col-span-6">
-            <img class="animate-rise w-full object-cover [clip-path:polygon(0_0,_100%_0,_100%_90%,_0_100%)]" src="{{ asset('layoutimages/vorsorge.jpg') }}">
-        </div>
-    </div>
-    #}
+
     <div class="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 px-4 relative mx-auto">
         <img class="animate-rise opacity-80 xl:opacity-100 mask-l-from-50% mask-l-to-95% min-h-100 object-cover rounded-3xl" src="{{ asset('layoutimages/vorsorge.jpg') }}">
         <div class="absolute top-4 lg:top-10 xl:top-20 left-0 w-full">
             <div class="mx-auto max-w-screen-md lg:max-w-screen-xl py-2 px-4">
                 <div class="w-full xl:w-1/2 ps-4 lg:ps-0">
                     <h1 class="eyebrow animate-rise text-third mb-3">{{ content.header_title }}</h1>
-                    {% include 'includes/highlight.html.twig' with { text: content.header_subtitle } %}
+                    <twig:Highlight :text="content.header_subtitle" />
                     <p class="lg:w-2/3 mt-6 md:text-lg text-muted-foreground animate-rise [animation-delay:160ms]">{{ content.header_description }}</p>
                 </div>
             </div>

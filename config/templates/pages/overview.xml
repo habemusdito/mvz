@@ -45,7 +45,7 @@
                     <param name="uuid" value="object.resource.uuid"/>
                     <param name="authored" value="object.authored"/>
                     <param name="lastModified" value="object.lastModified"/>
-                    <param name="excerptTitle" value="object.title" />
+                    <param name="excerptTitle" value="header_title" />
                     <param name="excerptDescription" value="description"/>
                     <param name="excerptImage" value="team-pic"/>
                     <param name="excerptType" value="teamtype"/>

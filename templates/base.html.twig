@@ -36,11 +36,12 @@
 
         {% block content %}{% endblock %}
         {# include 'layout/body.html.twig' #}
+
     </main>
 
     <footer>
         {% block footer %}
-            <p>Copyright {{ 'now'|date('Y') }} SULU</p>
+            {% include 'layout/footer.html.twig' %}
         {% endblock %}
     </footer>
 
