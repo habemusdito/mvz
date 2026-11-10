@@ -21,9 +21,8 @@ mounts:
     'public/uploads':
         source: local
         source_path: uploads
-    'public/assets':
-        source: local
-        source_path: assets
+    # public/assets ist bewusst KEIN Mount: die Assets werden im Build erzeugt.
+    # Ein Mount würde sie mit dem Stand des ersten Deployments überdecken.
 
 web:
     locations:
@@ -61,6 +60,10 @@ hooks:
         curl -s https://get.symfony.com/cloud/configurator | bash
 
         symfony-build
+
+        # Tailwind-CSS bauen und alle Assets (AssetMapper) nach public/assets kompilieren
+        php bin/console tailwind:build --minify
+        php bin/console asset-map:compile
 
     deploy: |
         set -x -e
