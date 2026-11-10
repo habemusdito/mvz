@@ -69,3 +69,7 @@ hooks:
         set -x -e
 
         symfony-deploy
+
+        # Cache der Website (inkl. Sulu-HTTP-Cache mit fertig gerenderten Seiten) leeren.
+        # symfony-deploy leert nur den Admin-Cache; var/ ist ein Mount und überlebt sonst jedes Deployment.
+        php bin/websiteconsole cache:clear
