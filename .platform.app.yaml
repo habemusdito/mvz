@@ -51,7 +51,8 @@ disk: 256
 # to the application in the PLATFORM_RELATIONSHIPS variable. The right-hand
 # side is in the form '<service name>:<endpoint name>'.
 relationships:
-    mariadb: 'mariadb:mysql'
+    # Der Name "database" sorgt dafür, dass Upsun zur Laufzeit DATABASE_URL (inkl. Passwort) automatisch setzt
+    database: 'mariadb:mysql'
 
 hooks:
     build: |

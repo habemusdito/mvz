@@ -1,6 +1,6 @@
 <?php
 
 return [
-    'DATABASE_PASSWORD' => null,
     'ETERMIN_PUBLIC_KEY' => null,
+    'ETERMIN_SECRET_KEY' => null,
 ];
