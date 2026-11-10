@@ -1,5 +1,0 @@
-services:
-	-
-		class: JanGregor\Prophecy\Reflection\ObjectProphecy\MethodsClassReflectionExtension
-		tags:
-			- phpstan.broker.methodsClassReflectionExtension

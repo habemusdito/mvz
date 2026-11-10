@@ -1,6 +1,0 @@
-.phpmake
-/vendor
-/composer.phar
-/composer.lock
-/metrics
-.php-cs-fixer.cache 

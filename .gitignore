@@ -3,9 +3,10 @@
 /.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
+/config/secrets/dev/
 #/public/bundles/
 /var/
-#/vendor/
+/vendor/
 ###< symfony/framework-bundle ###
 ###> phpunit/phpunit ###
 /phpunit.xml
@@ -56,6 +57,6 @@ phpstan.neon
 ###< vincentlanglet/twig-cs-fixer ###
 
 ###> symfony/asset-mapper ###
-#/public/assets/
+/public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###

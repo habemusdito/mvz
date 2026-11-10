@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
-
-exports[`Return JSX for selected item 1`] = `
-<p>
-  Value 1
-</p>
-`;
-
-exports[`Return null if nothing is passed 1`] = `null`;
