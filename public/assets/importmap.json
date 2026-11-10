@@ -1,0 +1,30 @@
+{
+    "app": {
+        "path": "\/assets\/app-_ybc5ro.js",
+        "type": "js"
+    },
+    "\/assets\/styles\/app.css": {
+        "path": "\/assets\/styles\/app-W3MBMfJ.css",
+        "type": "css"
+    },
+    "etermin": {
+        "path": "\/assets\/etermin-jOxysqY.js",
+        "type": "js"
+    },
+    "flowbite": {
+        "path": "\/assets\/vendor\/flowbite\/flowbite.index-Faq2eIL.js",
+        "type": "js"
+    },
+    "@popperjs\/core": {
+        "path": "\/assets\/vendor\/@popperjs\/core\/core.index-u58qDur.js",
+        "type": "js"
+    },
+    "flowbite-datepicker": {
+        "path": "\/assets\/vendor\/flowbite-datepicker\/flowbite-datepicker.index-_LbzquB.js",
+        "type": "js"
+    },
+    "flowbite\/dist\/flowbite.min.css": {
+        "path": "\/assets\/vendor\/flowbite\/dist\/flowbite.min-iwOjxH8.css",
+        "type": "css"
+    }
+}
