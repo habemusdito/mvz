@@ -20,7 +20,7 @@
 
 # web
 #/public/bundles
-#/public/uploads
+/public/uploads
 
 # composer
 /composer.phar
