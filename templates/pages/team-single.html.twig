@@ -2,41 +2,41 @@
 
 {% block content %}
     <div class="px-4 md:px-0">
-    <div class="grid grid-cols-3 max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 p-0 relative mx-auto bg-third-100 rounded-3xl">
-        <div class="col-span-2 p-10">
-            <h2 class="eyebrow animate-rise text-third mb-3">{{ content.description }}</h2>
-            <h1 class="font-heading text-4xl md:text-7xl text-gray">{{ content.title }}</h1>
-        </div>
-        <div class="col-span-1 bg-third-100 bg-blend-overlay rounded-3xl">
-            {% set image = content.teampic %}
-            <img class="animate-rise opacity-80 xl:opacity-100 mask-l-from-10% mask-l-to-100% min-h-100 object-cover w-full rounded-3xl" src="{{ image.url }}">
-        </div>
-    </div>
-    <div class="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 relative mx-auto">
-        {% for section in content.sections %}
-            <div class="border-b border-b-gray mb-12">
-                <h3 class="font-heading text-gray-900 text-4xl px-4 pt-4 uppercase">{{ section.title }}</h3>
+        <div class="grid grid-cols-3 max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 p-0 relative mx-auto bg-third-100 rounded-3xl">
+            <div class="col-span-2 p-10">
+                <h2 class="eyebrow animate-rise text-third mb-3">{{ content.description }}</h2>
+                <h1 class="font-heading text-4xl md:text-7xl text-gray">{{ content.title }}</h1>
             </div>
-            <ol class="relative border-s border-default ms-4">
-            {% for feature in section.features %}
-                <li class="mb-10 ms-4">
-                    {% if feature.feature_time %}
-                        <div class="absolute w-3 h-3 bg-forth rounded-full mt-1.5 -start-1.5 border border-buffer"></div>
-                        <time class="font-heading text-xl text-forth">{{ feature.feature_time }}</time>
-                    {% endif %}
-                    {% if feature.feature_desc %}
-                        <h4 class="text-xl my-2">{{ feature.feature_desc }}</h4>
-                    {% endif %}
-                    {% if feature.feature_list %}
-                        <div class="feature-list">
-                            {{ feature.feature_list|raw }}
-                        </div>
-                    {% endif %}
-                </li>
+            <div class="col-span-1 bg-third-100 bg-blend-overlay rounded-3xl">
+                {% set image = content.teampic %}
+                <img class="animate-rise opacity-80 xl:opacity-100 mask-l-from-10% mask-l-to-100% min-h-100 object-cover w-full rounded-3xl" src="{{ image.url }}">
+            </div>
+        </div>
+        <div class="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 relative mx-auto">
+            {% for section in content.sections %}
+                <div class="border-b border-b-gray mb-12">
+                    <h3 class="font-heading text-gray-900 text-4xl px-4 pt-4 uppercase">{{ section.title }}</h3>
+                </div>
+                <ol class="relative border-s border-default ms-4">
+                {% for feature in section.features %}
+                    <li class="mb-10 ms-4">
+                        {% if feature.feature_time %}
+                            <div class="absolute w-3 h-3 bg-forth rounded-full mt-1.5 -start-1.5 border border-buffer"></div>
+                            <time class="font-heading text-xl text-forth">{{ feature.feature_time }}</time>
+                        {% endif %}
+                        {% if feature.feature_desc %}
+                            <h4 class="text-xl my-2">{{ feature.feature_desc }}</h4>
+                        {% endif %}
+                        {% if feature.feature_list %}
+                            <div class="feature-list">
+                                {{ feature.feature_list|raw }}
+                            </div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ol>
             {% endfor %}
-            </ol>
-        {% endfor %}
 
-    </div>
+        </div>
     </div>
 {% endblock %}

@@ -1,0 +1,86 @@
+<?xml version="1.0" ?>
+<template xmlns="http://schemas.sulu.io/template/template"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://schemas.sulu.io/template/template http://schemas.sulu.io/template/template-1.0.xsd">
+
+    <key>leistung_single</key>
+    <view>pages/leistung-single</view>
+    <controller>Sulu\Content\UserInterface\Controller\Website\ContentController::indexAction</controller>
+
+    <properties>
+
+        <property name="title" type="text_line" mandatory="true">
+            <meta>
+                <title lang="de">Titel/Name</title>
+            </meta>
+
+            <tag name="sulu.rlp.part"/>
+        </property>
+        <property name="url" type="route" mandatory="true">
+            <meta>
+                <title lang="de">URL</title>
+            </meta>
+
+            <params>
+                <param name="mode" value="tree_full_edit"/>
+            </params>
+
+            <tag name="sulu.rlp"/>
+        </property>
+
+        <property name="header_title" type="text_line">
+            <meta>
+                <title lang="de">farbiger Titel</title>
+                <title lang="en">colored title</title>
+                <info_text lang="de">Text zwischen *Sternchen* wird farbig hervorgehoben.</info_text>
+                <info_text lang="en">Text between *asterisks* is highlighted.</info_text>
+            </meta>
+        </property>
+
+        <property name="header_subtitle" type="text_line">
+            <meta>
+                <title lang="de">Unter-Titel</title>
+            </meta>
+        </property>
+        <property name="image" type="single_media_selection">
+            <meta>
+                <title lang="de">Bild</title>
+            </meta>
+        </property>
+
+        <block name="sections" default-type="section_block">
+            <meta>
+                <title lang="de">Abschnitte</title>
+            </meta>
+            <params>
+                <param name="add_button_text">
+                    <meta>
+                        <title lang="de">Block hinzufügen</title>
+                    </meta>
+                </param>
+            </params>
+            <types>
+                <type name="section_block">
+                    <meta>
+                        <title lang="de">Absatz</title>
+                    </meta>
+                    <properties>
+                        <property name="title" type="text_line" mandatory="true">
+                            <meta>
+                                <title lang="de">Absatz-Titel</title>
+                            </meta>
+                        </property>
+
+                        <property name="article" type="text_editor">
+                            <meta>
+                                <title lang="en">Article</title>
+                                <title lang="de">Artikel</title>
+                            </meta>
+                        </property>
+
+                    </properties>
+                </type>
+            </types>
+        </block>
+    </properties>
+</template>

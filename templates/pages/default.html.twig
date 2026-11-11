@@ -3,8 +3,6 @@
 {% block content %}
     {% if content.url is same as '/sprechzeiten' %}
         {% include 'pages/sprechzeiten.html.twig' %}
-    {% elseif content.url is same as '/behandlungsschwerpunkte' %}
-        {% include 'pages/behandlungsschwerpunkte.html.twig' %}
     {% else %}
 
         {% set hasHeaderText = content.header_title or content.header_subtitle or content.header_description %}
