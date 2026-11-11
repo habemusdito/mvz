@@ -4,7 +4,6 @@
 {% set praxisteam = content.pages|filter(p => p.excerptType == 'praxis') %}
 
 {% block content %}
-
     <div class="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 px-4 relative mx-auto">
         <img class="animate-rise opacity-80 xl:opacity-100 mask-l-from-50% mask-l-to-95% min-h-100 object-cover rounded-3xl" src="{{ asset('layoutimages/vorsorge.jpg') }}">
         <div class="absolute top-4 lg:top-10 xl:top-20 left-0 w-full">
@@ -26,10 +25,11 @@
             </div>
             <div class="flex flex-wrap justify-center gap-12">
                 {% for arzt in arztteam %}
+                    {{ dump(arzt) }}
                     <div class="w-full md:w-[calc((100%-6rem)/3)]">
                         <div class="relative bg-third-50 p-6 border border-third-300 rounded-xl shadow-xl">
                             <div class="flex flex-col items-center">
-                                <img class="w-1/2 h-1/2 mb-6 rounded-full" src="{{ arzt.excerptImage.url }}" alt="{{ arzt.excerptTitle }}"/>
+                                <img class="w-1/2 h-1/2 mb-6 rounded-full" src="{{ arzt.excerptImage.formats['sulu-260x'] }}" alt="{{ arzt.excerptTitle }}"/>
                                 <h3 class="font-heading text-lg mb-3">{{ arzt.excerptTitle }}</h3>
                                 <span class="text-sm text-body">{{ arzt.excerptDescription }}</span>
                                 <div class="flex mt-4 md:mt-6 gap-4">

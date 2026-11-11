@@ -59,7 +59,7 @@
             </params>
         </property>
 
-        <block name="sections" default-type="section_block" minOccurs="1">
+        <block name="sections" default-type="section_block">
             <meta>
                 <title lang="de">Abschnitte</title>
             </meta>
