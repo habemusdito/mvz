@@ -1,6 +1,9 @@
 @theme {
 
 }
+p {
+    @apply mb-3
+}
 
 .moz-light {
     font-family: 'mozlight';
@@ -52,7 +55,7 @@
 }
 
 .article ul {
-    @apply ms-4
+    @apply ms-4 mb-3
 }
 
 .article li {
