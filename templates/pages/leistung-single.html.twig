@@ -1,7 +1,55 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-    <div class="px-4 md:px-0">
+    <div class="grid grid-cols-4 gap-8 max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 px-2 md:px-0 relative mx-auto">
+        <div class="col-span-4 lg:col-span-3">
+            <img class="animate-rise rounded-3xl" src="{{ content.image.url }}">
+        </div>
+        <div class="hidden lg:block col-span-1">
+            <div class="text-sm bg-white border border-forth rounded-2xl">
+                {% for item in sulu_page_navigation_root_flat('leistung', 2, {
+                    'title': 'title',
+                    'url': 'url',
+                    'uuid': 'object.resource.uuid',
+                }) %}
+                    <a href="{{ item.url }}" aria-current="true" class="block w-full px-4 py-2 not-last:border-b border-forth rounded-t-base cursor-pointer {{ item.uuid is same as resource.id ? 'font-bold text-forth' : 'hover:font-bold hover:text-forth' }}">
+                        {{ item.title }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="block lg:hidden col-span-4">
+            <button id="leistung" data-dropdown-toggle="showLeistung" class="inline-flex items-center justify-center w-full text-sm bg-white border border-forth rounded-2xl p-2" type="button">
+                Alle Leistungen
+                <svg class="w-4 h-4 ms-1.5 -me-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+            </button>
+
+            <!-- Dropdown menu -->
+            <div id="showLeistung" class="z-10 hidden text-sm bg-white border border-forth rounded-2xl w-full shadow-2xl">
+                {% for item in sulu_page_navigation_root_flat('leistung', 2, {
+                    'title': 'title',
+                    'url': 'url',
+                    'uuid': 'object.resource.uuid',
+                }) %}
+                    <a href="{{ item.url }}" aria-current="true" class="block w-full px-4 py-2 not-last:border-b border-forth rounded-t-base {{ item.uuid is same as resource.id ? 'font-bold text-forth' : 'hover:font-bold hover:text-forth' }}">
+                        {{ item.title }}
+                    </a>
+                {% endfor %}
+            </div>
+
+
+        </div>
+        <div class="col-span-4">
+            <h3 class="eyebrow animate-rise text-third mb-3">{{ content.header_subtitle }}</h3>
+            <twig:Highlight :text="content.header_title" tag="h1" />
+            {% for section in content.sections %}
+                <h2 class="font-heading text-gray-900 text-xl md:text-2xl lg:text-4xl pe-4 pt-4 uppercase border-b border-b-gray-900 my-6">{{ section.title }}</h2>
+                <div class="article w-full lg:w-2/3">
+                    {{ section.article|raw }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
         {#
         <div class="grid grid-cols-3 max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 p-0 relative mx-auto bg-third-100 rounded-3xl">
             <div class="col-span-2 p-10">
@@ -40,5 +88,5 @@
 
         </div>
         #}
-    </div>
+
 {% endblock %}

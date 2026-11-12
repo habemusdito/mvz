@@ -51,3 +51,19 @@
     @apply border-1 border-third text-lg text-third font-semibold p-2 inline-block rounded-2xl bg-white/50 inline-block m-2
 }
 
+.article ul {
+    @apply ms-4
+}
+
+.article li {
+    li::marker {
+        @apply text-forth;
+    }
+    @apply list-disc font-semibold text-third
+}
+
+.article p, .article li {
+    @apply leading-8
+}
+
+

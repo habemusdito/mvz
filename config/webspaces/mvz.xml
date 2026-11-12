@@ -44,6 +44,12 @@
                     <title lang="de">Footernavigation</title>
                 </meta>
             </context>
+            <context key="leistung">
+                <meta>
+                    <title lang="en">Leistung Navigation</title>
+                    <title lang="de">Leistungnavigation</title>
+                </meta>
+            </context>
         </contexts>
     </navigation>
 
