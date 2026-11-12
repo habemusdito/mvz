@@ -1,6 +1,12 @@
 <div class="w-full bg-primary text-secondary-100 mt-20 py-10">
     <div class="container mx-auto">
-        <p class="flex">{{ ux_icon('tabler:copyright', {class: 'w-6 h-6 me-4'}) }}2026 MVZ GANZIMMUN GmbH</p>
-        <p class="flex">{{ ux_icon('tabler:map-pin', {class: 'w-6 h-6 me-4'}) }}Erich-Dombrowski-Straße 3 | 55127 Mainz{{ ux_icon('tabler:phone', {class: 'w-6 h-6 mx-4'}) }}Tel: 06131 7205-220</p>
+        <p class="flex mb-2">{{ ux_icon('tabler:copyright', {class: 'w-6 h-6 me-4'}) }}2026 MVZ GANZIMMUN GmbH</p>
+        <p class="flex mb-2">{{ ux_icon('tabler:map-pin', {class: 'w-6 h-6 me-4'}) }}Erich-Dombrowski-Straße 3 | 55127 Mainz</p>
+        <p class="flex mb-2">{{ ux_icon('tabler:phone', {class: 'w-6 h-6 me-4'}) }}Tel: 06131 7205-220</p>
+        {% for item in sulu_page_navigation_root_flat('footer') %}
+            <a href="{{ item.url }}" aria-current="true" class="hover:text-secondary-400">
+                {{ item.title }}
+            </a>
+        {% endfor %}
     </div>
 </div>

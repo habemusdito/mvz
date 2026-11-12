@@ -41,6 +41,14 @@
                 </div>
             </div>
         {% endif %}
+
+        {% if content.article %}
+            <div class="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl mt-5 xl:mt-20 px-4 relative mx-auto">
+                <h1 class="font-heading text-3xl md:text-4xl lg:text-6xl text-gray mb-6">{{ content.title }}</h1>
+                {{ content.article|raw}}
+            </div>
+        {% endif %}
+
     {% endif %}
 
 
